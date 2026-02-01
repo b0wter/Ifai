@@ -1,4 +1,4 @@
-module Ifai.Lib.Modes.LeavingRoom
+module Ifai.Lib.LeavingRoom
 
 open Ifai.Lib
 

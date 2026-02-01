@@ -110,7 +110,7 @@ type ExploringIntent =
     | Unknown
     
     
-type ExploringMsg =
+type ExploringEvent =
     | NewRom
     | UserInput of Input
     | ResolvingRoomEvent of RoomEvent option
@@ -127,7 +127,7 @@ type ExploringState = {
 }
 
 
-let runCmd (cmd: ExploringCmd) : ExploringMsg list =
+let runCmd (cmd: ExploringCmd) : ExploringEvent list =
     match cmd with
     | Print text ->
         do Console.WriteLine(text)
@@ -164,7 +164,10 @@ let matchInputWithIntent (input: ExploringBuiltIn) : ExploringIntent =
 
 let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : ExploringIntent =
     match input with
-    | BuiltIn builtIns -> builtIns |> List.sortBy exploringBuiltInPriority |> List.tryHead |> Option.map matchInputWithIntent |> Option.defaultValue Unknown
+    | BuiltIn builtIns ->
+        // TODO: since we have multiple intents we can do a lot better than the following code
+        //       we can ask the user for clarification and so on
+        builtIns |> List.sortBy exploringBuiltInPriority |> List.tryHead |> Option.map matchInputWithIntent |> Option.defaultValue Unknown
     | Input.Sentence _ -> ExploringIntent.Ignore "sentence input is not yet supported"
 
 
@@ -191,7 +194,7 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
     | Wait -> { world with Turn = world.Turn + 1u }, state, Nothing
 
 
-let updateExploring (world: World) (state: ExploringState) (msg: ExploringMsg) : World * ExploringState * ExploringCmd =
+let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : World * ExploringState * ExploringCmd =
     match msg with
     | UserInput input ->
         let intent = resolveUserIntent world state input

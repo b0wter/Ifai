@@ -87,7 +87,7 @@ let dummyRooms = [
 
 
 let world = World.init (dummyRooms |> Map.values |> List.ofSeq) dummyRoomIds[0]
-let state = { Exploring.ExploringState.Foo = 0 } |> Loop.GameMode.Exploring
-let model = { Loop.World = world; Loop.GameMode = [state]; Loop.Language = Language.create "en" }
+let state = { Exploring.ExploringState.Foo = 0 } |> Runtime.GameMode.Exploring
+let model = { Runtime.World = world; Runtime.GameMode = [state]; Runtime.Language = Language.create "en" }
 
-Loop.run model
+Runtime.run model

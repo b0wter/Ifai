@@ -39,7 +39,7 @@ type SavingIntent =
     | DoNotOverwriteFile
     | Abort
 
-type SavingMsg =
+type SavingEvent =
     | Save of filename:string
     | UserInput of Input
     | AskForOverwriting of filename:string
@@ -57,7 +57,7 @@ type SavingState = {
 }
 
 
-let runCmd (cmd: SavingCmd) : SavingMsg list =
+let runCmd (cmd: SavingCmd) : SavingEvent list =
     match cmd with
     | Nothing -> []
 
@@ -67,6 +67,6 @@ let parser (language: Language) (input: string) : Input =
     failwith "Not implemented"
     
     
-let updateSaving (world: World) (state: SavingState) (msg: SavingMsg) : World * SavingState * SavingCmd =
+let updateSaving (world: World) (state: SavingState) (msg: SavingEvent) : World * SavingState * SavingCmd =
     match msg with
     | _ -> world, state, Nothing
