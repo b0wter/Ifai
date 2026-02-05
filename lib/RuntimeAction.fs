@@ -32,14 +32,10 @@ type RuntimeAction =
 
 type RenderAction =
     | Nothing
-    | Render of Text
-    | RenderMany of Text list   // having Render and RenderMany is just for convenience
     | Clear
-    | ClearAndRender of Text
-    | ClearAndRenderMany of Text list
-    /// This is to be only used in case of "emergencies" when there cannot be a predefined text.
-    /// Most likely for errors and exceptions
-    | FallbackRender of string
+    | Text of Text
+    | Fallback of string
+    | Batch of RenderAction list
 
 
 type ToSavingModeParameters = {
@@ -52,13 +48,7 @@ type ToLoadingModeParameters = {
 }
 
 
-type ToLeavingModeParameters = {
-    FromRoomId: RoomId
-    ToRoomId: RoomId
-}
-
-
-type ToEnteringRoomParameters = {
+type ToTransitionParameters = {
     FromRoomId: RoomId
     ToRoomId: RoomId
 }
@@ -70,5 +60,4 @@ type ModeTransition =
     | StartExploring
     | StartSaving of ToSavingModeParameters
     | StartLoading of ToLoadingModeParameters
-    | StartEnteringRoom of ToEnteringRoomParameters
-    | StartLeavingRoom of ToLeavingModeParameters
+    | StartTransition of ToTransitionParameters

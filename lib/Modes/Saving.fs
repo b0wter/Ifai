@@ -69,7 +69,7 @@ type SavingState =
 let init (parameters: ToSavingModeParameters) : SavingState * RuntimeAction * RenderAction =
     match parameters.Filename with
     | Some filename -> (filename, false) |> SavingFile, (filename, false) |> RuntimeAction.SaveGame, RenderAction.Nothing
-    | None -> AskingForFilename, RuntimeAction.Nothing, RenderAction.FallbackRender "Enter the name of the file you want to save to:"
+    | None -> AskingForFilename, RuntimeAction.Nothing, RenderAction.Fallback "Enter the name of the file you want to save to:"
 
 
 let parser (language: Language) (input: string) : Input =
@@ -96,37 +96,84 @@ let resolveUserIntent (state: SavingState) (input: Input) : SavingIntent =
     | Finished, _ -> SavingIntent.Unknown
 
 
-let handleIntentForAskingForFilename (world: World) (intent: SavingIntent) : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntentForAskingForFilename (world: World) (intent: SavingIntent) : StepResult<SavingState> =
     match intent with
-    | EnterFilename filename -> world, (filename, false) |> SavingFile, RuntimeAction.SaveGame (filename, false), RenderAction.Nothing, ModeTransition.Nothing
-    | Abort -> world, AskingForFilename, RuntimeAction.Nothing, RenderAction.FallbackRender "Okay, I will not save the game.", ModeTransition.Finished
+    | EnterFilename filename ->
+        StepResult.init
+            world
+            ((filename, false) |> SavingFile)
+        |> StepResult.withRuntime (RuntimeAction.SaveGame (filename, false))
+ 
+    | Abort ->
+        StepResult.init
+            world
+            AskingForFilename
+        |> StepResult.withRender (RenderAction.Fallback "Okay, I will not save the game.")
+        |> StepResult.withTransition ModeTransition.Finished
     // intents that do not match the current state
     | OverwriteFile
     | DoNotOverwriteFile
-    | Unknown -> world, AskingForFilename, RuntimeAction.Nothing, RenderAction.FallbackRender "I do not understand, please try again. Enter the name of the file you want to save to", ModeTransition.Nothing
+    | Unknown ->
+        StepResult.init
+            world
+            AskingForFilename
+        |> StepResult.withRender (RenderAction.Fallback "I do not understand, please try again. Enter the name of the file you want to save to")
 
 
-let handleIntentForAskingForOverwritePermission (world: World) (intent: SavingIntent) filename : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntentForAskingForOverwritePermission (world: World) (intent: SavingIntent) filename : StepResult<SavingState> =
     match intent with
-    | OverwriteFile -> world, SavingState.SavingFile (filename, true), RuntimeAction.SaveGame (filename, true), RenderAction.Nothing, ModeTransition.Nothing
-    | DoNotOverwriteFile -> world, SavingState.Finished, RuntimeAction.Nothing, RenderAction.FallbackRender "I will not overwrite the file.", ModeTransition.Finished
-    | Abort -> world, SavingState.Finished, RuntimeAction.Nothing, RenderAction.FallbackRender "Okay, I will not save the game.", ModeTransition.Finished
+    | OverwriteFile ->
+        StepResult.init
+            world
+            (SavingState.SavingFile (filename, true))
+        |> StepResult.withRuntime (RuntimeAction.SaveGame (filename, true))
+
+    | DoNotOverwriteFile ->
+        StepResult.init
+            world
+            SavingState.Finished
+        |> StepResult.withRender (RenderAction.Fallback "I will not overwrite the file.")
+        |> StepResult.withTransition ModeTransition.Finished
+
+    | Abort ->
+        StepResult.init
+            world
+            SavingState.Finished
+        |> StepResult.withRender (RenderAction.Fallback "Okay, I will not save the game.")
+        |> StepResult.withTransition ModeTransition.Finished
+
     // intents that do not match the current state
-    | EnterFilename _ -> world, filename |> AskingForOverwritePermission, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing
-    | Unknown -> world, filename |> AskingForOverwritePermission, RuntimeAction.Nothing, RenderAction.FallbackRender "I do not understand, please try again. Do you want to overwrite the file? [yes/no/abort]", ModeTransition.Nothing
+    | EnterFilename _ ->
+        StepResult.init
+            world
+            (filename |> AskingForOverwritePermission)
+    | Unknown ->
+        StepResult.init
+            world
+            (filename |> AskingForOverwritePermission)
+        |> StepResult.withRender (RenderAction.Fallback "I do not understand, please try again. Do you want to overwrite the file? [yes/no/abort]")
 
 
-let handleIntentForSavingFile (world: World) (intent: SavingIntent) (filename, allowOverwrite) : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntentForSavingFile (world: World) (intent: SavingIntent) (filename, allowOverwrite) : StepResult<SavingState> =
     match intent with
-    | _ -> world, (filename, allowOverwrite) |> SavingFile, RuntimeAction.Nothing, RenderAction.FallbackRender "Inputs are not supported while saving the game", ModeTransition.Nothing
+    | _ ->
+        StepResult.init
+            world
+            ((filename, allowOverwrite) |> SavingFile)
+        |> StepResult.withRender (RenderAction.Fallback "Inputs are not supported while saving the game")
 
 
-let handleIntentForFinished (world: World) (intent: SavingIntent) : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntentForFinished (world: World) (intent: SavingIntent) : StepResult<SavingState> =
     match intent with
-    | _ -> world, Finished, RuntimeAction.Nothing, RenderAction.FallbackRender "Inputs are not supported while transitioning modes", ModeTransition.Finished
+    | _ ->
+        StepResult.init
+            world
+            Finished
+        |> StepResult.withRender (RenderAction.Fallback "Inputs are not supported while transitioning modes")
+        |> StepResult.withTransition ModeTransition.Finished
 
 
-let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : StepResult<SavingState> =
     match state with
     | AskingForFilename -> handleIntentForAskingForFilename world intent
     | AskingForOverwritePermission filename -> handleIntentForAskingForOverwritePermission world intent filename
@@ -134,18 +181,29 @@ let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : Wo
     | Finished -> handleIntentForFinished world intent
 
 
-let updateSaving (world: World) (state: SavingState) (msg: SavingEvent) : World * SavingState * RuntimeAction * RenderAction * ModeTransition =
+let updateSaving (world: World) (state: SavingState) (msg: SavingEvent) : StepResult<SavingState> =
     match state, msg with
     | _, UserInput input ->
         input
         |> resolveUserIntent state
         |> (handleIntent world state)
+
     | SavingFile _, SavingEvent.IoSuccess ->
-        world, SavingState.Finished, RuntimeAction.Nothing, RenderAction.FallbackRender "Saved game successfully", ModeTransition.Finished
+        StepResult.init world SavingState.Finished
+        |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "saved_game_successfully")))
+        |> StepResult.withTransition ModeTransition.Finished
+
     | SavingFile _, SavingEvent.IoFailure error ->
-        world, SavingState.Finished, RuntimeAction.Nothing, RenderAction.FallbackRender $"Could not save game because: %s{error}", ModeTransition.Finished
+        StepResult.init world SavingState.Finished
+        |> StepResult.withRender (RenderAction.Batch [ RenderAction.Text (Text.create (TextKey.create "error_while_saving_game")); RenderAction.Fallback error ])
+        |> StepResult.withTransition ModeTransition.Finished
+
     | SavingFile _, SavingEvent.FileAlreadyExists filename ->
-        world, filename |> SavingState.AskingForOverwritePermission, RuntimeAction.Nothing, RenderAction.FallbackRender $"The file '%s{filename}' already exists. Overwrite? [y/n/a]", ModeTransition.Nothing
+        StepResult.init
+            world
+            (filename |> SavingState.AskingForOverwritePermission)
+        |> StepResult.withRender (RenderAction.Fallback $"The file '%s{filename}' already exists. Overwrite? [y/n/a]")
+
     | _ ->
         failwith $"The state %A{state} is not yet implemented"
         //world, state, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing

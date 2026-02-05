@@ -1,7 +1,6 @@
 module Ifai.Lib.Modes.Exploring
 
 open Ifai.Lib
-
 open System
 
 (*
@@ -166,69 +165,41 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
     | Input.Sentence _ -> ExploringIntent.Ignore "sentence input is not yet supported"
 
 
-let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : World * ExploringState * RuntimeAction * RenderAction * ModeTransition =
+let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : StepResult<ExploringState> =
     match intent with
     | Move exit ->
         match world |> World.getRoomIdForExit exit with
         | Some nextRoomId ->
-            world,
-            state,
-            RuntimeAction.Nothing,
-            RenderAction.Nothing,
-            ModeTransition.StartLeavingRoom { ToLeavingModeParameters.FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId }
+            failwith "implement transition mode here :D"
         | None ->
-            world,
-            state,
-            RuntimeAction.Nothing,
-            RenderAction.Render (Text.create (TextKey.create "no_exit_found")),
-            ModeTransition.Nothing
+            StepResult.init world state
+            |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "no_exit_found")))
     | LookAround ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Nothing,
-        ModeTransition.Nothing
+        StepResult.init world state
+        |> StepResult.withRender (RenderAction.Fallback "Looking around in the exploring mode has not been implemented yet")
     | Examine item ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Render (Text.create (TextKey.create "dummy_text")),
-        ModeTransition.Nothing
+        StepResult.init world state
+        |> StepResult.withRender (RenderAction.Fallback "Examining in the exploring mode has not been implemented yet")
     | Take item ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Nothing,
-        ModeTransition.Nothing
+        StepResult.init world state
+        |> StepResult.withRender (RenderAction.Fallback "Taking in the exploring mode has not been implemented yet")
     | TakeAll ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Nothing,
-        ModeTransition.Nothing
+        StepResult.init world state
+        |> StepResult.withRender (RenderAction.Fallback "TakingAll in the exploring mode has not been implemented yet")
     | Ignore _ ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Nothing,
-        ModeTransition.Nothing
+        StepResult.init world state
     | Unknown ->
-        world,
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Render (Text.create (TextKey.create "unknown_intent")),
-        ModeTransition.Nothing
+        StepResult.init world state
+        |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "unknown_intent")))
     | Wait ->
-        { world with Turn = world.Turn + 1u },
-        state,
-        RuntimeAction.Nothing,
-        RenderAction.Nothing,
-        ModeTransition.Nothing
+        StepResult.init { world with Turn = world.Turn + 1u } state
+        |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "waiting_description")))
 
 
-let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : World * ExploringState * RuntimeAction * RenderAction * ModeTransition =
+let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : StepResult<ExploringState> =
     match msg with
     | UserInput input ->
         let intent = resolveUserIntent world state input
         intent |> handleIntent world state
-    | _ -> world, state, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing
+    | _ ->
+        StepResult.init world state

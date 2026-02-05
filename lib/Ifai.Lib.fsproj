@@ -13,12 +13,13 @@
     <Compile Include="World.fs" />
     <Compile Include="BuiltIns.fs" />
     <Compile Include="RuntimeAction.fs" />
-    <Compile Include="Modes\EnteringRoom.fs" />
+    <Compile Include="StepResult.fs" />
+    <Content Include="Modes\README.md" />
     <Compile Include="Modes\Exploring.fs" />
-    <Compile Include="Modes\LeavingRoom.fs" />
     <Compile Include="Modes\Saving.fs" />
     <Compile Include="Modes\Loading.fs" />
-    <Compile Include="Modes\RoomTransition.fs" />
+    <Compile Include="Modes\Transition.fs" />
+    <Compile Include="Model.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
 

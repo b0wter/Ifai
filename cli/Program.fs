@@ -107,8 +107,8 @@ let dummyRooms = [
 
 
 let world = World.init (dummyRooms |> Map.values |> List.ofSeq) dummyRoomIds[0]
-let state = { Exploring.ExploringState.Foo = 0 } |> Runtime.GameMode.Exploring
-let model = { Runtime.World = world; Runtime.GameMode = [state]; Runtime.Language = Language.create "en"; Runtime.TextResources = textResources }
+let state = { Exploring.ExploringState.Foo = 0 } |> GameMode.Exploring
+let model = { Model.World = world; Model.GameMode = [state]; Model.Language = Language.create "en"; Model.TextResources = textResources }
 
 let textWriter filename allowOverwrite (content: string) =
     try
