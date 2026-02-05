@@ -94,7 +94,7 @@ type NarrativeStyle =
 /// </summary>
 type Text = {
     ResourceKey: TextKey
-    Intent: NarrativeStyle option
+    NarrativeStyle: NarrativeStyle option
     Parameters: Map<ParameterKey, ParameterType> option
     ParameterFormatting: Map<ParameterKey, Parameter -> string> option
 }
@@ -103,7 +103,7 @@ type Text = {
 module Text =
     
     let create resourceKey =
-        { ResourceKey = resourceKey; Intent = None; Parameters = None; ParameterFormatting = None }
+        { ResourceKey = resourceKey; NarrativeStyle = None; Parameters = None; ParameterFormatting = None }
         
 
     /// <summary>
@@ -111,7 +111,7 @@ module Text =
     /// </summary>
     type DisplayableText = {
         Text: string
-        Intent: NarrativeStyle
+        NarrativeStyle: NarrativeStyle
     }
     
     
@@ -143,7 +143,7 @@ module Text =
         resources
         |> Map.tryFind language
         |> Option.bind (Map.tryFind text.ResourceKey)
-        |> Option.defaultValue $"<text key '%s{text.ResourceKey |> TextKey.value}' missing for language %s{language |> Language.value}>"
+        |> Option.defaultValue $"<text key '%s{text.ResourceKey |> TextKey.value}' missing for language '%s{language |> Language.value}'>"
         
     
     /// <summary>
@@ -184,10 +184,10 @@ module Text =
         let getMapper (key: ParameterKey) =
             formatters |> Map.tryFind key |> Option.defaultValue Parameters.stringify
         parameters
-        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace($"{{{key}}}", param |> (key |> getMapper))) resolvedString
+        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace(key |> ParameterKey.value, param |> (key |> getMapper))) resolvedString
             
             
-    let toDisplayable resources language text parameters =
+    let toDisplayable resources language parameters text =
         let parameters = parameters |> Option.defaultValue Map.empty
         let formatting = text.ParameterFormatting |> Option.defaultValue Map.empty
         let parameterizedString =
@@ -196,8 +196,8 @@ module Text =
             |> withParameters parameters formatting
             
         match parameters |> containsAll (text.Parameters |> Option.defaultValue Map.empty) with
-        | ValidateSuccess -> Ok { Text = parameterizedString; Intent = text.Intent |> Option.defaultValue
-                                                                                          NarrativeStyle.Regular } 
+        | ValidateSuccess ->
+            Ok { Text = parameterizedString; NarrativeStyle = text.NarrativeStyle |> Option.defaultValue NarrativeStyle.Regular } 
         | Failure validateParametersFailure ->
             let mergedMissing =
                 if validateParametersFailure.Missing.IsEmpty then String.Empty
@@ -210,7 +210,7 @@ module Text =
                     |> List.fold (fun acc (expected, actual, key) ->
                             let toAppend = $"%s{key |> ParameterKey.value} mismatch: expected %A{expected} got %A{actual}"
                             if acc.Length = 0 then toAppend else $"%s{acc}, %s{toAppend}") String.Empty)
-            Error { Text = $"%s{parameterizedString}%s{mergedMissing}%s{mergedMismatches}"; Intent = System }
+            Error { Text = $"%s{parameterizedString}%s{mergedMissing}%s{mergedMismatches}"; NarrativeStyle = System }
 
     
     let private toDomainResources (raw: Map<string, Map<string, string>>) : TextResources =

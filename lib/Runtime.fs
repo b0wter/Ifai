@@ -2,6 +2,8 @@ module Ifai.Lib.Runtime
 
 open System
 open System.Threading
+open Ifai.Lib.Modes
+
 
 type GameMode =
     | EnteringRoom of EnteringRoom.EnteringRoomState
@@ -15,91 +17,8 @@ type Model = {
     World: World
     GameMode: GameMode list
     Language: Language
+    TextResources: TextResources
 }
-
-
-type Event =
-    | Exploring of Exploring.ExploringEvent
-    | Saving of Saving.SavingEvent
-    | RawInput of string
-    | ChangeRoom of RoomId
-
-
-type Parsing =
-    | ParseExploringInput of Language * string
-    | ParseSavingInput of Language * string
-    | ParseLoadingInput of Language * string
-
-
-type Dispatch =
-    | LoadingCmd
-    | SavingCmd of Saving.SavingCmd
-    | ExploringCmd of Exploring.ExploringCmd
-    | EnteringRoomCmd
-    | LeavingRoomCmd
-
-
-/// The global Cmd is split because there are three distinct responsibilities (batching, parsing
-type Cmd =
-    | Nothing
-    /// Relays commands to more state-specific game modes
-    | Dispatch of Dispatch
-    /// Triggers the parsing process which turns a string into something known (that is game-mode-specific)
-    | Parsing of Parsing
-    /// Side effect that may result in exceptions, e.g. IO operations
-    | Effect of RuntimeAction
-
-    /// Aggregated commands
-    | Batch of Cmd list
-    
-
-/// <summary>
-/// Runs the state-specific parser in the input
-/// </summary>
-/// <remarks>
-/// This function always returns a single `Msg`
-/// </remarks>
-let runParser (preConfiguredParser: Parsing) : Event =
-    match preConfiguredParser with
-    | ParseExploringInput (language, input) ->
-        input
-        |> Exploring.parser language
-        |> Exploring.ExploringEvent.UserInput
-        |> Event.Exploring
-    | ParseSavingInput (language, input) ->
-        input
-        |> Saving.parser language
-        |> Saving.SavingEvent.UserInput
-        |> Event.Saving
-    | ParseLoadingInput (language, input) ->
-        failwith "Parsing loading input has not yet been implemented"
-
-
-let runEffect (terminate: unit -> unit) (effect: RuntimeAction) : Event option =
-    match effect with
-    | Print text ->
-        failwith "printing text not yet implemented"
-    | Quit ->
-        do terminate ()
-        None
-
-
-let runDispatch (dispatch: Dispatch) : Event list =
-    match dispatch with
-    | LoadingCmd -> failwith "todo"
-    | SavingCmd cmd -> cmd |> Saving.runCmd |> List.map Event.Saving
-    | ExploringCmd cmd -> cmd |> Exploring.runCmd |> List.map Event.Exploring
-    | EnteringRoomCmd -> failwith "todo"
-    | LeavingRoomCmd -> failwith "todo"
-
-
-let rec runCmd (terminate: unit -> unit) (cmd: Cmd) : Event list =
-    match cmd with
-    | Nothing -> []
-    | Parsing p -> p |> runParser |> List.singleton
-    | Batch batch -> batch |> List.collect (runCmd terminate)
-    | Effect e -> e |> runEffect terminate |> Option.map List.singleton |> Option.defaultValue [] //failwith "runCmd was called with a 'Cmd Effect' which should be handled by the global loop"
-    | Dispatch dispatch -> dispatch |> runDispatch
 
 
 let (|InExploring|_|) = function
@@ -127,55 +46,282 @@ let (|InLeavingRoom|_|) = function
     | _ -> None
 
 
-let update (model: Model) (msg: Event) : Model * Cmd =
+type Event =
+    | Exploring of Exploring.ExploringEvent
+    | Saving of Saving.SavingEvent
+    | EnteringRoom of EnteringRoom.EnteringRoomEvent
+    | LeavingRoom of LeavingRoom.LeavingRoomEvent
+    | RawInput of string
+    | FileWrittenSuccessfully
+    | FileWriteFailed of reason:string
+    | FileAlreadyExists of filename:string
+
+
+let update (model: Model) (event: Event) : Model * RuntimeAction * RenderAction * ModeTransition =
     let w = model.World
-    match model.GameMode, msg with
+    match model.GameMode, event with
     | _, Event.RawInput i ->
         match i |> BuiltIns.globalParser model.Language with
         // We can extract globals right here and turn them into global commands
-        | Some (BuiltIns.GlobalBuiltIn.Save filename) -> { model with GameMode = (GameMode.Saving { Saving.SavingState.Filename = filename }) :: model.GameMode }, Cmd.Nothing
-        | Some (BuiltIns.GlobalBuiltIn.Load _) -> model, Cmd.Nothing
-        | Some BuiltIns.GlobalBuiltIn.Quit -> model, Cmd.Effect RuntimeAction.Quit
+        | Some (BuiltIns.GlobalBuiltIn.Save filename) -> model, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.StartSaving { Filename = filename }
+        | Some (BuiltIns.GlobalBuiltIn.Load _) -> model, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing
+        | Some BuiltIns.GlobalBuiltIn.Quit -> model, RuntimeAction.Quit, RenderAction.Nothing, ModeTransition.Nothing
         // Other input is delegated to the current game mode
         | None ->
             let parser =
                 match model.GameMode.Head with
-                | GameMode.Exploring _ -> Parsing.ParseExploringInput (model.Language, i)
-                | GameMode.Saving _    -> Parsing.ParseSavingInput (model.Language, i)
-                | GameMode.Loading _   -> Parsing.ParseLoadingInput (model.Language, i)
-                | EnteringRoom enteringRoomState -> failwith "todo"
-                | LeavingRoom leavingRoomState -> failwith "todo"
-
-            model, Cmd.Parsing parser
+                | GameMode.Exploring _    -> Parsing.ParseExploringInput (model.Language, i)
+                | GameMode.Saving _       -> Parsing.ParseSavingInput (model.Language, i)
+                | GameMode.Loading _      -> Parsing.ParseLoadingInput (model.Language, i)
+                | GameMode.EnteringRoom _ -> Parsing.ParseEnteringRoomInput (model.Language, i)
+                | GameMode.LeavingRoom _  -> Parsing.ParseLeavingRoomInput (model.Language, i)
+            model, RuntimeAction.Parsing parser, RenderAction.Nothing, ModeTransition.Nothing
     | GameMode.Exploring state :: rest, Event.Exploring msg ->
-        let updatedWord, updatedState, newCmd = Exploring.updateExploring w state msg
-        { model with World = updatedWord; GameMode = GameMode.Exploring updatedState :: rest }, newCmd |> Dispatch.ExploringCmd |> Cmd.Dispatch
+        let updatedWord, updatedState, runtimeAction, renderAction, modeTransition = Exploring.updateExploring w state msg
+        { model with World = updatedWord; GameMode = GameMode.Exploring updatedState :: rest }, runtimeAction, renderAction, modeTransition
     | InExploring _, _ ->
-        failwith $"Invalid combination, received {msg} while in Exploring mode"
+        failwith $"Invalid combination, received {event} while in Exploring mode"
+        
+    | GameMode.Saving state :: rest, Event.FileWrittenSuccessfully ->
+        let updatedWorld, updatedState, runtimeAction, renderAction, modeTransition = Saving.updateSaving w state Saving.SavingEvent.IoSuccess
+        { model with World = updatedWorld; GameMode = GameMode.Saving updatedState :: rest }, runtimeAction, renderAction, modeTransition
+    | GameMode.Saving state :: rest, Event.FileWriteFailed error ->
+        let updatedWorld, updatedState, runtimeAction, renderAction, modeTransition = Saving.updateSaving w state (error |> Saving.SavingEvent.IoFailure)
+        { model with World = updatedWorld; GameMode = GameMode.Saving updatedState :: rest }, runtimeAction, renderAction, modeTransition
+    | GameMode.Saving state :: rest, Event.FileAlreadyExists f ->
+        let updatedWorld, updatedState, runtimeAction, renderAction, modeTransition = Saving.updateSaving w state (f |> Saving.SavingEvent.FileAlreadyExists)
+        { model with World = updatedWorld; GameMode = GameMode.Saving updatedState :: rest }, runtimeAction, renderAction, modeTransition
     | GameMode.Saving state :: rest, Event.Saving msg ->
-        let updatedWorld, updatedState, newCmd = Saving.updateSaving w state msg
-        { model with World = updatedWorld; GameMode = GameMode.Saving updatedState :: rest }, newCmd |> Dispatch.SavingCmd |> Cmd.Dispatch
+        let updatedWorld, updatedState, runtimeAction, renderAction, modeTransition = Saving.updateSaving w state msg
+        { model with World = updatedWorld; GameMode = GameMode.Saving updatedState :: rest }, runtimeAction, renderAction, modeTransition
     | InSaving _, _ ->
-        failwith $"Invalid combination, received {msg} while in Saving mode"
+        failwith $"Invalid combination, received {event} while in Saving mode"
+
+    | GameMode.LeavingRoom state :: rest, Event.LeavingRoom event ->
+        let updatedWorld, updatedState, runtimeAction, renderAction, modeTransition = LeavingRoom.update w state event
+        { model with World = updatedWorld; GameMode = GameMode.LeavingRoom updatedState :: rest }, runtimeAction, renderAction, modeTransition
+    | InLeavingRoom _, _ ->
+        failwith $"Invalid combination, received {event} while in LeavingRoom mode"
+        
+    | GameMode.EnteringRoom state :: rest, Event.EnteringRoom event ->
+        let updatedWorld, updatedState, runtimeAction, renderAction, ModeTransition = EnteringRoom.update w state event
+        { model with World = updatedWorld; GameMode = GameMode.EnteringRoom updatedState :: rest }, runtimeAction, renderAction, ModeTransition
+    | InEnteringRoom _, _ ->
+        failwith $"Invalid combination, received {event} while in EnteringRoom mode"
+
     | otherMode, msg -> failwith $"Combination of {otherMode} and {msg} not yet implemented"
 
 
-let run (model: Model) =
+let runParser (preConfiguredParser: Parsing) : Event =
+    match preConfiguredParser with
+    | ParseExploringInput (language, input) ->
+        input
+        |> Exploring.parser language
+        |> Exploring.ExploringEvent.UserInput
+        |> Event.Exploring
+    | ParseSavingInput (language, input) ->
+        input
+        |> Saving.parser language
+        |> Saving.SavingEvent.UserInput
+        |> Event.Saving
+    | ParseLeavingRoomInput (language, input) ->
+        input
+        |> LeavingRoom.parser language
+        |> LeavingRoom.LeavingRoomEvent.UserInput
+        |> Event.LeavingRoom
+    | ParseEnteringRoomInput (language, input) ->
+        input
+        |> EnteringRoom.parser language
+        |> EnteringRoom.EnteringRoomEvent.UserInput
+        |> Event.EnteringRoom
+    | _ -> failwith "Invalid parser"
+
+
+let runAction (writeToFile: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (terminate: unit -> unit) (action: RuntimeAction) : Event option =
+    match action with
+    | Quit ->
+        do terminate ()
+        None
+    | RuntimeAction.Nothing -> None
+    | Parsing p -> p |> runParser |> Some
+    | WriteFile (filename, allowOverwrite, content) ->
+        content
+        |> (writeToFile filename allowOverwrite) 
+        |> (function
+            | WriteFileResult.Success -> Event.FileWrittenSuccessfully
+            | WriteFileResult.Failure error -> Event.FileWriteFailed error
+            | WriteFileResult.AlreadyExists filename -> Event.FileAlreadyExists filename)
+        |> Some
+    | ReadFile filename -> failwith "todo: not yet implemented"
+    | SerializeAndWriteToFile (filename, allowOverwrite, obj) ->
+        obj
+        |> serializer
+        |> Result.map (writeToFile filename allowOverwrite)
+        |> (function
+            | Ok WriteFileResult.Success -> Event.FileWrittenSuccessfully
+            | Ok (WriteFileResult.Failure err) -> err |> Event.FileWriteFailed
+            | Ok (WriteFileResult.AlreadyExists f) -> f |> Event.FileAlreadyExists
+            | Error err -> err |> Event.FileWriteFailed)
+        |> Some
+        
+    // The SaveGame case is special since it requires a current instance of the model. That model is only known to the
+    // runtime and that's why the `SaveGame` action is replaced with a `SerializeAndWriteToFile` action with the world
+    // as parameter
+    | SaveGame _ -> failwith "SaveGame must be resolved by the runtime and cannot be run as an action"
+
+
+let printDebug (model: Model) (event: Event) (action: RuntimeAction) (transition: ModeTransition) : unit =
+    do Console.ForegroundColor <- ConsoleColor.Yellow
+    do Console.Write($"{model.GameMode.Head.GetType().Name}")
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Green
+    do Console.Write(event)
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Blue
+    do Console.Write(action)
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Magenta
+    do Console.WriteLine(transition)
+    do Console.ResetColor ()
+    
+    
+let rec render (textResources: TextResources) (language: Language) (action: RenderAction) =
+    // TODO: since there is no scripting or DSL for the game logic there is no sense in having parameterized texts
+    let clear = fun () -> Console.Clear ()
+    let render (text: Text.DisplayableText) =
+        fun () ->
+            do Console.ResetColor ()
+            do match text.NarrativeStyle with
+               | Regular -> ()
+               | Emphasized -> Console.ForegroundColor <- ConsoleColor.Magenta
+               | Hint -> Console.ForegroundColor <- ConsoleColor.Gray
+               | Dialogue -> Console.ForegroundColor <- ConsoleColor.Cyan
+               | System -> Console.ForegroundColor <- ConsoleColor.Red
+            do text.Text |> Console.WriteLine
+
+    let formatter (text: Text) =
+        text
+        |> Text.toDisplayable textResources language None
+        |> function Ok t -> t | Error t -> t
+
+    let display = formatter >> render
+    
+    let actions =
+        match action with
+        | Render text -> [text |> display]
+        | RenderMany texts -> texts |> List.map display
+        | Clear -> [clear]
+        | ClearAndRender text -> [clear; text |> display]
+        | ClearAndRenderMany texts -> clear :: (texts |> List.map display)
+        | RenderAction.Nothing -> [fun () -> ()]
+        | FallbackRender s ->
+            let asDisplayable = { Text.DisplayableText.Text = s; Text.DisplayableText.NarrativeStyle = NarrativeStyle.Regular }
+            [ asDisplayable |> render ]
+
+    do actions |> List.iter (fun x -> x ())
+
+
+/// <summary>
+/// Pushes of pops a new game mode onto the game mode stack for the given model
+/// </summary>
+/// <returns>
+/// Returns `Some` if the model was changed and `None` otherwise
+/// </returns>
+let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeAction * RenderAction =
+    match transition with
+    | Nothing ->
+        model,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing
+    | Finished ->
+        { model with GameMode = model.GameMode.Tail },
+        RuntimeAction.Nothing,
+        RenderAction.Nothing
+    | StartExploring ->
+        { model with GameMode = ({ Exploring.Foo = 42 } |> GameMode.Exploring) :: model.GameMode },
+        RuntimeAction.Nothing,
+        RenderAction.Nothing
+    | StartSaving savingModeParameters ->
+        let state, action, render = savingModeParameters |> Saving.init
+        { model with GameMode = (state |> GameMode.Saving) :: model.GameMode },
+        action,
+        render
+    | StartLoading loadingModeParameters ->
+        let state = loadingModeParameters |> Loading.init
+        { model with GameMode = (state |> GameMode.Loading) :: model.GameMode },
+        RuntimeAction.Nothing,
+        RenderAction.Nothing
+    | StartEnteringRoom enteringRoomParameters ->
+        let updatedWorld, state, action, render = enteringRoomParameters |> EnteringRoom.init model.World
+        { model with World = updatedWorld; GameMode = (state |> GameMode.EnteringRoom) :: model.GameMode },
+        action,
+        render
+    | StartLeavingRoom leavingModeParameters ->
+        { model with GameMode = (leavingModeParameters |> LeavingRoom.init |> GameMode.LeavingRoom) :: model.GameMode },
+        RuntimeAction.Nothing,
+        RenderAction.Nothing
+
+
+let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (model: Model) =
     let cts = new CancellationTokenSource()
     let terminate = fun () -> cts.Cancel()
+    let runAction = runAction fileWriter serializer terminate
+    let mutable pendingTransition : ModeTransition option = None
+
     let agent = MailboxProcessor<Event>.Start(fun inbox ->
         let rec loop (currentModel: Model) = async {
             try
-                let! msg = inbox.Receive()
-                let newModel, cmd = update currentModel msg
-                let newMsg = cmd |> (runCmd terminate)
-                do newMsg |> List.iter (fun msg -> msg |> inbox.Post)
-                
-                if cts.Token.IsCancellationRequested then
-                    do printfn "Shutting down"
-                    return ()
-                else
-                    return! loop newModel
+                (*
+                    To transition between states and not lose any messages, the transition works as follows:
+                    - we store the pending transition in a mutable variable.
+                    - we "drain" the current mailbox, this should be no problem since messages are almost exclusively
+                      created through user input
+                    - once the mailbox is empty and we cannot dequeue any event, we apply the transition
+                *)
+                let! maybeEvent = inbox.TryReceive(100)
+                match maybeEvent with
+                | Some event ->
+                    let newModel, runtimeAction, renderAction, transition = update currentModel event
+                    
+                    do printDebug newModel event runtimeAction transition
+                    
+                    do renderAction |> render model.TextResources model.Language
+
+                    do
+                       // Since the SaveGame action requires the current `model` it can only be truly constructed in
+                       // the runtime. 
+                       (match runtimeAction with
+                        | SaveGame (filename, allowOverwrite) -> SerializeAndWriteToFile (filename, allowOverwrite, newModel)
+                        | other -> other)
+                        |> runAction
+                        |> Option.iter inbox.Post
+                    
+                    if not transition.IsNothing then pendingTransition <- Some transition
+                    
+                    if cts.Token.IsCancellationRequested then
+                        do printfn "Shutting down"
+                        return ()
+                    else
+                        return! loop newModel
+                | None ->
+                    match pendingTransition with
+                    | Some t ->
+                        pendingTransition <- None
+                        let newModel, runtimeAction, renderAction = currentModel |> runTransition t
+                        
+                        do (match runtimeAction with
+                            | SaveGame (filename, allowOverwrite) -> SerializeAndWriteToFile (filename, allowOverwrite, newModel)
+                            | other -> other)
+                            |> runAction
+                            |> Option.iter inbox.Post
+                        
+                        do renderAction |> render model.TextResources model.Language
+                        return! loop newModel
+                    | None ->
+                        return! loop currentModel
             with
             | exn ->
                 do printfn $"Error while running command: %s{exn.Message}"

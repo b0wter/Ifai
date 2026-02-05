@@ -1,4 +1,6 @@
-module Ifai.Lib.EnteringRoom
+module Ifai.Lib.Modes.EnteringRoom
+
+open Ifai.Lib
 
 (*
     This is a phase that is set once the player newly enters a room.
@@ -6,21 +8,47 @@ module Ifai.Lib.EnteringRoom
     Exploring-state (most of the time)
 *)
 
-type EnteringRoomMsg =
-    | Entered
+type Input = Nothing
+
+
+type EnteringRoomEvent =
     | HandleEvent of RoomEvent
     | Finished
-
-
-type EnteringRoomCmd =
-    | Move of RoomId
-    | Nothing
+    | UserInput of Input
 
 
 type EnteringRoomState = {
-    Foo: int
+    FromRoomId: RoomId
+    ToRoomId: RoomId
 }
 
 
-let update (world: World) (state: EnteringRoomState) (msg:EnteringRoomMsg) : (World * EnteringRoomState * EnteringRoomCmd) =
-    failwith "EnteringRoom not implemented"
+let init (world: World) (parameters: ToEnteringRoomParameters) : World * EnteringRoomState * RuntimeAction * RenderAction =
+    let state =
+        {
+            FromRoomId = parameters.FromRoomId
+            ToRoomId = parameters.ToRoomId
+        }
+    let updatedWorld = world |> World.setCurrentRoomId parameters.ToRoomId
+    let currentRoom = updatedWorld |> World.currentRoom
+    let renderAction =
+        RenderAction.RenderMany
+            [ currentRoom.Name
+              currentRoom.Description ]
+    updatedWorld,
+    state,
+    RuntimeAction.Nothing,
+    renderAction
+
+
+let parser _ _ : Input =
+    Input.Nothing
+
+
+let update (world: World) (state: EnteringRoomState) (event: EnteringRoomEvent) : World * EnteringRoomState * RuntimeAction * RenderAction * ModeTransition =
+    world,
+    state,
+    RuntimeAction.Nothing,
+    RenderAction.Nothing,
+    ModeTransition.Nothing
+    

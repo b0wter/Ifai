@@ -12,18 +12,18 @@ type GlobalBuiltIn =
 /// Uses factory functions to create the BuiltIn because BuiltIns may have an argument.
 /// The first part of the tuple is the strings that the BuiltIn matches
 /// </summary>
-type BuiltInFactoryDictionary = string list * (string -> GlobalBuiltIn)
+type BuiltInFactoryDictionary = string list * (string option -> GlobalBuiltIn)
 
 let private english : BuiltInFactoryDictionary list =
     [
-    ["save"; "savegame"], fun argument -> Save (if argument.Length > 0 then Some argument else None)
+    ["save"; "savegame"], fun argument -> Save argument
     ["quit"; "exit"], fun _ -> Quit
     ]
 
 
 let private german : BuiltInFactoryDictionary list =
     [
-    ["speicher "; "speichern "], fun argument -> Save (if argument.Length > 0 then Some argument else None)
+    ["speicher "; "speichern "], fun argument -> Save argument
     ["beenden"; "ende"], fun _ -> Quit
     ]
 

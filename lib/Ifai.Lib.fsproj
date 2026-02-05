@@ -18,6 +18,7 @@
     <Compile Include="Modes\LeavingRoom.fs" />
     <Compile Include="Modes\Saving.fs" />
     <Compile Include="Modes\Loading.fs" />
+    <Compile Include="Modes\RoomTransition.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>
 

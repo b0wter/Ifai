@@ -9,6 +9,7 @@ module RoomId =
 
 
 type RoomEvent =
+    | Nothing
     | Batch of RoomEvent list
 
 

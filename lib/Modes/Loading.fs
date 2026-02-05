@@ -1,6 +1,11 @@
-module Ifai.Lib.Loading
+module Ifai.Lib.Modes.Loading
 
+open Ifai.Lib
 
 type LoadingState = {
     Filename: string option
 }
+
+
+let init (parameters: ToLoadingModeParameters) : LoadingState =
+    { Filename = parameters.Filename }

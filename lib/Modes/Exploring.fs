@@ -1,4 +1,6 @@
-module Ifai.Lib.Exploring
+module Ifai.Lib.Modes.Exploring
+
+open Ifai.Lib
 
 open System
 
@@ -59,9 +61,13 @@ let private english =
     ["d"; "down"], fun _ -> Down
     ["l"; "left"], fun _ -> Left
     ["r"; "right"], fun _ -> Right
-    ["l"; "look"; "look around"], fun _ -> LookAround
-    ["x"; "examine"; "l at "; "look at "], fun argument -> Examine argument
-    ["t"; "take"], fun argument -> Take argument
+    // TODO: definition needs to be tighter because this would also match "look at foobar" which it is not meant for! That needs to match "Examine"
+    // being able to explicitly allow/disallow arguments might solve this
+    ["l"; "look"], fun _ -> LookAround
+    // TODO: Replacing the option with an empty string is not the final solution!
+    ["x"; "examine" ], fun argument -> Examine (argument |> Option.defaultValue String.Empty)
+    // TODO: Replacing the option with an empty string is not the final solution!
+    ["t"; "take"], fun argument -> Take (argument |> Option.defaultValue String.Empty)
     ["take all"; "takeall"; "get all"; "getall"], fun _ -> TakeAll
     ]
     
@@ -81,15 +87,17 @@ let private german =
     ["l"; "links"], fun _ -> Left
     ["r"; "rechts"], fun _ -> Right
     ["u"; "umgucken"; "umschauen"; "umsehen"], fun _ -> LookAround
-    ["g"; "a"; "gucken"; "angucken"; "anschauen"; "ansehen"; "x"; "untersuchen "; "unsersuche "], fun argument -> Examine argument
-    ["n "; "nehme "; "nimm "], fun argument -> Take argument
+    // TODO: Replacing the option with an empty string is not the final solution!
+    ["g"; "a"; "gucken"; "angucken"; "anschauen"; "ansehen"; "x"; "untersuchen "; "unsersuche "], fun argument -> Examine (argument |> Option.defaultValue String.Empty)
+    // TODO: Replacing the option with an empty string is not the final solution!
+    ["n "; "nehme "; "nimm "], fun argument -> Take (argument |> Option.defaultValue String.Empty)
     ["nimm alles" ], fun _ -> TakeAll
     ]
     
     
 let builtIns =
     [ Language.create "en", english
-      Language.create "de", german
+      Language.create "ger", german
     ] |> Map.ofList
 
 
@@ -116,25 +124,12 @@ type ExploringEvent =
     | ResolvingRoomEvent of RoomEvent option
 
 
-type ExploringCmd =
-    | Print of string
-    | Nothing
-
-
 type ExploringState = {
     Foo: int
     // TODO: add meaningful fields
 }
 
 
-let runCmd (cmd: ExploringCmd) : ExploringEvent list =
-    match cmd with
-    | Print text ->
-        do Console.WriteLine(text)
-        []
-    | Nothing -> []
-    
-    
 /// Turns raw text input into intent
 let parser (language: Language) (input: string) : Input =
     let matches = input |> (Parser.tryParseBuiltIn builtIns language)
@@ -171,32 +166,69 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
     | Input.Sentence _ -> ExploringIntent.Ignore "sentence input is not yet supported"
 
 
-let tryMoveToRoom (world: World) (exit: Directions.Exit) : Room option =
-    world.Rooms
-    |> Map.tryFind world.CurrentRoom
-    |> Option.map _.Connections
-    |> Option.bind (Map.tryFind exit)
-    |> Option.bind (fun roomId -> world.Rooms |> Map.tryFind roomId)
-    
-
-let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : World * ExploringState * ExploringCmd =
+let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : World * ExploringState * RuntimeAction * RenderAction * ModeTransition =
     match intent with
     | Move exit ->
-        match exit |> tryMoveToRoom world with
-        | Some room -> { world with CurrentRoom = room.Id }, state, Nothing
-        | None -> world, state, Nothing
-    | LookAround -> world, state, Nothing
-    | Examine item -> world, state, Nothing
-    | Take item -> world, state, Nothing
-    | TakeAll -> world, state, Nothing
-    | Ignore _ -> world, state, Nothing
-    | Unknown -> world, state, (ExploringCmd.Print "Input could not be interpreted")
-    | Wait -> { world with Turn = world.Turn + 1u }, state, Nothing
+        match world |> World.getRoomIdForExit exit with
+        | Some nextRoomId ->
+            world,
+            state,
+            RuntimeAction.Nothing,
+            RenderAction.Nothing,
+            ModeTransition.StartLeavingRoom { ToLeavingModeParameters.FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId }
+        | None ->
+            world,
+            state,
+            RuntimeAction.Nothing,
+            RenderAction.Render (Text.create (TextKey.create "no_exit_found")),
+            ModeTransition.Nothing
+    | LookAround ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing,
+        ModeTransition.Nothing
+    | Examine item ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Render (Text.create (TextKey.create "dummy_text")),
+        ModeTransition.Nothing
+    | Take item ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing,
+        ModeTransition.Nothing
+    | TakeAll ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing,
+        ModeTransition.Nothing
+    | Ignore _ ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing,
+        ModeTransition.Nothing
+    | Unknown ->
+        world,
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Render (Text.create (TextKey.create "unknown_intent")),
+        ModeTransition.Nothing
+    | Wait ->
+        { world with Turn = world.Turn + 1u },
+        state,
+        RuntimeAction.Nothing,
+        RenderAction.Nothing,
+        ModeTransition.Nothing
 
 
-let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : World * ExploringState * ExploringCmd =
+let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : World * ExploringState * RuntimeAction * RenderAction * ModeTransition =
     match msg with
     | UserInput input ->
         let intent = resolveUserIntent world state input
         intent |> handleIntent world state
-    | _ -> world, state, Nothing
+    | _ -> world, state, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing
