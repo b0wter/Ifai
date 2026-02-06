@@ -20,6 +20,11 @@ let (|InLoading|_|) = function
     | _ -> None
 
 
+let (|InTransitioning|_|) = function
+    | GameMode.Transitioning s :: _ -> Some s
+    | _ -> None
+
+
 let mapStepResultToGlobalResult<'state> (modeMap: 'state -> GameMode) (model: Model) (r: StepResult<'state>) : GlobalResult =
     let newGameMode = (r.State |> modeMap) :: model.GameMode.Tail
     GlobalResult.init { model with GameMode = newGameMode; World = r.World }
@@ -48,35 +53,42 @@ let update (model: Model) (event: Event) : GlobalResult =
         | None ->
             let parser =
                 match model.GameMode.Head with
-                | GameMode.Exploring _    -> Parsing.ParseExploringInput (model.Language, i)
-                | GameMode.Saving _       -> Parsing.ParseSavingInput    (model.Language, i)
-                | GameMode.Loading _      -> Parsing.ParseLoadingInput   (model.Language, i)
-                
+                | GameMode.Exploring _     -> Parsing.ParseExploringInput (model.Language, i)
+                | GameMode.Saving _        -> Parsing.ParseSavingInput    (model.Language, i)
+                | GameMode.Loading _       -> Parsing.ParseLoadingInput   (model.Language, i)
+                | GameMode.Transitioning _ -> Parsing.ParseTransitioningInput (model.Language, i)
+
             GlobalResult.init model
             |> GlobalResult.withRuntime (RuntimeAction.Parsing parser)
 
-    | GameMode.Exploring state :: rest, Event.Exploring msg ->
-        Exploring.updateExploring w state msg
+    | InExploring state, Event.Exploring event ->
+        Exploring.update (StepInput.init w state event)
         |> mapStepResultToGlobalResult GameMode.Exploring model
     | InExploring _, _ ->
         // Fail fast while we're still developing!
         failwith $"Invalid combination, received {event} while in Exploring mode"
         
-    | GameMode.Saving state :: rest, Event.FileWrittenSuccessfully ->
-        Saving.updateSaving w state Saving.SavingEvent.IoSuccess
+    | InSaving state, Event.FileWrittenSuccessfully ->
+        Saving.update (StepInput.init w state Saving.SavingEvent.IoSuccess)
         |> mapStepResultToGlobalResult GameMode.Saving model
-    | GameMode.Saving state :: rest, Event.FileWriteFailed error ->
-        Saving.updateSaving w state (error |> Saving.SavingEvent.IoFailure)
+    | InSaving state, Event.FileWriteFailed error ->
+        Saving.update (StepInput.init w state (error |> Saving.SavingEvent.IoFailure))
         |> mapStepResultToGlobalResult GameMode.Saving model
-    | GameMode.Saving state :: rest, Event.FileAlreadyExists f ->
-        Saving.updateSaving w state (f |> Saving.SavingEvent.FileAlreadyExists)
+    | InSaving state, Event.FileAlreadyExists f ->
+        Saving.update (StepInput.init w state (f |> Saving.SavingEvent.FileAlreadyExists))
         |> mapStepResultToGlobalResult GameMode.Saving model
-    | GameMode.Saving state :: rest, Event.Saving msg ->
-        Saving.updateSaving w state msg
+    | InSaving state, Event.Saving event ->
+        Saving.update (StepInput.init w state event)
         |> mapStepResultToGlobalResult GameMode.Saving model
     | InSaving _, _ ->
         failwith $"Invalid combination, received {event} while in Saving mode"
 
+    | InTransitioning state, Event.Transitioning event ->
+        Transitioning.update (StepInput.init w state event)
+        |> mapStepResultToGlobalResult GameMode.Transitioning model
+    | InTransitioning _, _ ->
+        failwith $"Invalid combination, received {event} while in Transitioning mode"
+        
     | otherMode, msg -> failwith $"Combination of {otherMode} and {msg} not yet implemented"
 
 
@@ -92,10 +104,19 @@ let runParser (preConfiguredParser: Parsing) : Event =
         |> Saving.parser language
         |> Saving.SavingEvent.UserInput
         |> Event.Saving
-    | _ -> failwith "Invalid parser"
+    | ParseLoadingInput _ -> failwith "todo"
+    | ParseTransitioningInput (language, input) ->
+        input
+        |> Transitioning.parser language
+        |> Transitioning.TransitioningEvent.UserInput
+        |> Event.Transitioning
 
 
-let runAction (writeToFile: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (terminate: unit -> unit) (action: RuntimeAction) : Event option =
+let runAction
+        (writeToFile: string -> bool -> string -> WriteFileResult)
+        (serializer: obj -> Result<string, string>)
+        (terminate: unit -> unit)
+        (action: RuntimeAction) : Event option =
     match action with
     | Quit ->
         do terminate ()
@@ -110,7 +131,7 @@ let runAction (writeToFile: string -> bool -> string -> WriteFileResult) (serial
             | WriteFileResult.Failure error -> Event.FileWriteFailed error
             | WriteFileResult.AlreadyExists filename -> Event.FileAlreadyExists filename)
         |> Some
-    | ReadFile filename -> failwith "todo: not yet implemented"
+    | ReadFile _ -> failwith "todo: not yet implemented"
     | SerializeAndWriteToFile (filename, allowOverwrite, obj) ->
         obj
         |> serializer
@@ -170,7 +191,7 @@ let rec render (textResources: TextResources) (language: Language) (action: Rend
     let rec asFunction (renderable: RenderAction) =
         match renderable with
         | RenderAction.Nothing -> [fun _ -> ()]
-        | Clear -> [fun _ -> Console.Clear()]
+        | Clear -> [clear]
         | Text text -> [text |> display]
         | Fallback s -> 
             let asDisplayable = { Text.DisplayableText.Text = s; Text.DisplayableText.NarrativeStyle = NarrativeStyle.Regular }
@@ -210,7 +231,11 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         { model with GameMode = (state |> GameMode.Loading) :: model.GameMode },
         RuntimeAction.Nothing,
         RenderAction.Nothing
-    | StartTransition transitionParameters -> failwith "todo"
+    | StartTransition transitionParameters ->
+        let state, action, render = transitionParameters |> Transitioning.activate
+        { model with GameMode = (state |> GameMode.Transitioning) :: model.GameMode },
+        action,
+        render
 
 
 let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (model: Model) =

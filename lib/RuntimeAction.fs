@@ -4,8 +4,7 @@ type Parsing =
     | ParseExploringInput of Language * string
     | ParseSavingInput of Language * string
     | ParseLoadingInput of Language * string
-    | ParseEnteringRoomInput of Language * string
-    | ParseLeavingRoomInput of Language * string
+    | ParseTransitioningInput of Language * string
 
 
 type WriteFileResult =
@@ -48,7 +47,7 @@ type ToLoadingModeParameters = {
 }
 
 
-type ToTransitionParameters = {
+type ToTransitioningParameters = {
     FromRoomId: RoomId
     ToRoomId: RoomId
 }
@@ -60,4 +59,4 @@ type ModeTransition =
     | StartExploring
     | StartSaving of ToSavingModeParameters
     | StartLoading of ToLoadingModeParameters
-    | StartTransition of ToTransitionParameters
+    | StartTransition of ToTransitioningParameters

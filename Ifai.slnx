@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Tests/">
+    <Project Path="tests/library/Ifai.Library.Tests.fsproj" />
+  </Folder>
+  <Project Path="cli/Ifa.Cli.fsproj" />
+  <Project Path="lib/Ifai.Lib.fsproj" />
+</Solution>

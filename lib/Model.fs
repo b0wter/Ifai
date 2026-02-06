@@ -7,6 +7,7 @@ type GameMode =
     | Exploring of Exploring.ExploringState
     | Loading of Loading.LoadingState
     | Saving of Saving.SavingState
+    | Transitioning of Transitioning.TransitioningState
 
 
 type Model = {
@@ -20,6 +21,7 @@ type Model = {
 type Event =
     | Exploring of Exploring.ExploringEvent
     | Saving of Saving.SavingEvent
+    | Transitioning of Transitioning.TransitioningEvent
     | RawInput of string
     | FileWrittenSuccessfully
     | FileWriteFailed of reason:string

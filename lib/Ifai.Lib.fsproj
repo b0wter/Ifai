@@ -18,7 +18,7 @@
     <Compile Include="Modes\Exploring.fs" />
     <Compile Include="Modes\Saving.fs" />
     <Compile Include="Modes\Loading.fs" />
-    <Compile Include="Modes\Transition.fs" />
+    <Compile Include="Modes\Transitioning.fs" />
     <Compile Include="Model.fs" />
     <Compile Include="Runtime.fs" />
   </ItemGroup>

@@ -3,6 +3,15 @@ namespace Ifai.Lib
 open Ifai.Lib
 
 
+type StepInput<'state, 'event> = {
+    World: World
+    State: 'state
+    Event: 'event
+}
+module StepInput =
+    let init w s e = { World = w; State = s; Event = e }
+
+
 /// This is the result of a game-mode-specific update
 type StepResult<'state> = {
     World: World
@@ -11,7 +20,6 @@ type StepResult<'state> = {
     Render: RenderAction
     Transition: ModeTransition
 }
-
 module StepResult =
     let init w s =
         { World = w; State = s; Runtime = RuntimeAction.Nothing; Render = RenderAction.Nothing; Transition = ModeTransition.Nothing }

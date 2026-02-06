@@ -181,29 +181,29 @@ let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : St
     | Finished -> handleIntentForFinished world intent
 
 
-let updateSaving (world: World) (state: SavingState) (msg: SavingEvent) : StepResult<SavingState> =
-    match state, msg with
-    | _, UserInput input ->
-        input
-        |> resolveUserIntent state
-        |> (handleIntent world state)
+let update (input: StepInput<SavingState, SavingEvent>) : StepResult<SavingState> =
+    match input.State, input.Event with
+    | _, UserInput userInput ->
+        userInput
+        |> resolveUserIntent input.State
+        |> (handleIntent input.World input.State)
 
     | SavingFile _, SavingEvent.IoSuccess ->
-        StepResult.init world SavingState.Finished
+        StepResult.init input.World SavingState.Finished
         |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "saved_game_successfully")))
         |> StepResult.withTransition ModeTransition.Finished
 
     | SavingFile _, SavingEvent.IoFailure error ->
-        StepResult.init world SavingState.Finished
+        StepResult.init input.World SavingState.Finished
         |> StepResult.withRender (RenderAction.Batch [ RenderAction.Text (Text.create (TextKey.create "error_while_saving_game")); RenderAction.Fallback error ])
         |> StepResult.withTransition ModeTransition.Finished
 
     | SavingFile _, SavingEvent.FileAlreadyExists filename ->
         StepResult.init
-            world
+            input.World
             (filename |> SavingState.AskingForOverwritePermission)
         |> StepResult.withRender (RenderAction.Fallback $"The file '%s{filename}' already exists. Overwrite? [y/n/a]")
 
     | _ ->
-        failwith $"The state %A{state} is not yet implemented"
+        failwith $"The state %A{input.State} is not yet implemented"
         //world, state, RuntimeAction.Nothing, RenderAction.Nothing, ModeTransition.Nothing

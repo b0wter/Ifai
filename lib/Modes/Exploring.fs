@@ -170,7 +170,8 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
     | Move exit ->
         match world |> World.getRoomIdForExit exit with
         | Some nextRoomId ->
-            failwith "implement transition mode here :D"
+            StepResult.init world state
+            |> StepResult.withTransition (ModeTransition.StartTransition { FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId })
         | None ->
             StepResult.init world state
             |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "no_exit_found")))
@@ -196,10 +197,10 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
         |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "waiting_description")))
 
 
-let updateExploring (world: World) (state: ExploringState) (msg: ExploringEvent) : StepResult<ExploringState> =
-    match msg with
-    | UserInput input ->
-        let intent = resolveUserIntent world state input
-        intent |> handleIntent world state
+let update (input: StepInput<ExploringState, ExploringEvent>) : StepResult<ExploringState> =
+    match input.Event with
+    | UserInput userInput ->
+        let intent = resolveUserIntent input.World input.State userInput
+        intent |> handleIntent input.World input.State
     | _ ->
-        StepResult.init world state
+        StepResult.init input.World input.State
