@@ -25,10 +25,10 @@ let (|InTransitioning|_|) = function
     | _ -> None
 
 
-let mapStepResultToGlobalResult<'state> (modeMap: 'state -> GameMode) (model: Model) (r: StepResult<'state>) : GlobalResult =
+let mapStepResultToGlobalResult<'state, 'event> (modeMap: 'state -> GameMode) (eventMap: 'event -> Event) (model: Model) (r: StepResult<'state, 'event>) : GlobalResult =
     let newGameMode = (r.State |> modeMap) :: model.GameMode.Tail
     GlobalResult.init { model with GameMode = newGameMode; World = r.World }
-    |> GlobalResult.withRuntime r.Runtime
+    |> GlobalResult.withRuntime (r.Runtime |> RuntimeAction.map eventMap)
     |> GlobalResult.withRender r.Render
     |> GlobalResult.withTransition r.Transition
 
@@ -63,29 +63,29 @@ let update (model: Model) (event: Event) : GlobalResult =
 
     | InExploring state, Event.Exploring event ->
         Exploring.update (StepInput.init w state event)
-        |> mapStepResultToGlobalResult GameMode.Exploring model
+        |> mapStepResultToGlobalResult GameMode.Exploring Event.Exploring model
     | InExploring _, _ ->
         // Fail fast while we're still developing!
         failwith $"Invalid combination, received {event} while in Exploring mode"
         
     | InSaving state, Event.FileWrittenSuccessfully ->
         Saving.update (StepInput.init w state Saving.SavingEvent.IoSuccess)
-        |> mapStepResultToGlobalResult GameMode.Saving model
+        |> mapStepResultToGlobalResult GameMode.Saving Event.Saving model
     | InSaving state, Event.FileWriteFailed error ->
         Saving.update (StepInput.init w state (error |> Saving.SavingEvent.IoFailure))
-        |> mapStepResultToGlobalResult GameMode.Saving model
+        |> mapStepResultToGlobalResult GameMode.Saving Event.Saving model
     | InSaving state, Event.FileAlreadyExists f ->
         Saving.update (StepInput.init w state (f |> Saving.SavingEvent.FileAlreadyExists))
-        |> mapStepResultToGlobalResult GameMode.Saving model
+        |> mapStepResultToGlobalResult GameMode.Saving Event.Saving model
     | InSaving state, Event.Saving event ->
         Saving.update (StepInput.init w state event)
-        |> mapStepResultToGlobalResult GameMode.Saving model
+        |> mapStepResultToGlobalResult GameMode.Saving Event.Saving model
     | InSaving _, _ ->
         failwith $"Invalid combination, received {event} while in Saving mode"
 
     | InTransitioning state, Event.Transitioning event ->
         Transitioning.update (StepInput.init w state event)
-        |> mapStepResultToGlobalResult GameMode.Transitioning model
+        |> mapStepResultToGlobalResult GameMode.Transitioning Event.Transitioning model
     | InTransitioning _, _ ->
         failwith $"Invalid combination, received {event} while in Transitioning mode"
         
@@ -116,7 +116,7 @@ let runAction
         (writeToFile: string -> bool -> string -> WriteFileResult)
         (serializer: obj -> Result<string, string>)
         (terminate: unit -> unit)
-        (action: RuntimeAction) : Event option =
+        (action: RuntimeAction<Event>) : Event option =
     match action with
     | Quit ->
         do terminate ()
@@ -142,7 +142,9 @@ let runAction
             | Ok (WriteFileResult.AlreadyExists f) -> f |> Event.FileAlreadyExists
             | Error err -> err |> Event.FileWriteFailed)
         |> Some
-        
+    | OfEvent e -> Some e
+
+
     // The SaveGame case is special since it requires a current instance of the model. That model is only known to the
     // runtime and that's why the `SaveGame` action is replaced with a `SerializeAndWriteToFile` action with the world
     // as parameter
@@ -207,7 +209,7 @@ let rec render (textResources: TextResources) (language: Language) (action: Rend
 /// <returns>
 /// Returns `Some` if the model was changed and `None` otherwise
 /// </returns>
-let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeAction * RenderAction =
+let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeAction<Event> * RenderAction =
     match transition with
     | Nothing ->
         model,
@@ -224,7 +226,7 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
     | StartSaving savingModeParameters ->
         let state, action, render = savingModeParameters |> Saving.init
         { model with GameMode = (state |> GameMode.Saving) :: model.GameMode },
-        action,
+        action |> RuntimeAction.map Event.Saving,
         render
     | StartLoading loadingModeParameters ->
         let state = loadingModeParameters |> Loading.init
@@ -232,10 +234,10 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         RuntimeAction.Nothing,
         RenderAction.Nothing
     | StartTransition transitionParameters ->
-        let state, action, render = transitionParameters |> Transitioning.activate
-        { model with GameMode = (state |> GameMode.Transitioning) :: model.GameMode },
-        action,
-        render
+        let result = transitionParameters |> Transitioning.activate
+        { model with GameMode = (result.State |> GameMode.Transitioning) :: model.GameMode },
+        result.Runtime |> RuntimeAction.map Event.Transitioning,
+        result.Render
 
 
 let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (model: Model) =

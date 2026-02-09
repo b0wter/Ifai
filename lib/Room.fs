@@ -21,13 +21,28 @@ type Room = {
     Id: RoomId
     Name: Text
     Description: Text
-    Connections: Map<Directions.Exit, RoomId>
+    Connections: Map<Exit, RoomId>
     OnEnter: RoomEvent option
-    OnExit: RoomEvent option
+    OnLeaving: RoomEvent option
 }
 
 
 module Room =
-    let create id name desc = { Id = id; Name = name; Description = desc; Connections = Map.empty; OnEnter = None; OnExit = None }
+    let create id name desc =
+        { Id = id
+          Name = name
+          Description = desc
+          Connections = Map.empty
+          OnEnter = None
+          OnLeaving = None }
     
     let rename (r: Room) newName = { r with Name = newName }
+    
+    let name (r: Room) = r.Name
+    let description (r: Room) = r.Description
+    let onEnter r = r.OnEnter
+    let onLeaving r = r.OnLeaving
+
+    let listExits r =
+        r.Connections
+        |> Map.toList

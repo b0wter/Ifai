@@ -92,16 +92,32 @@ type NarrativeStyle =
 /// <summary>
 /// This represents a text resource that has not yet been resolved and filled with parameters.
 /// </summary>
-type Text = {
+[<CustomComparison; CustomEquality>]
+type Text =
+    {
     ResourceKey: TextKey
     NarrativeStyle: NarrativeStyle option
     Parameters: Map<ParameterKey, ParameterType> option
     ParameterFormatting: Map<ParameterKey, Parameter -> string> option
-}
-    
+    }
+    interface System.IComparable with
+        member x.CompareTo yobj =
+            match yobj with
+            | :? Text as y ->
+                compare
+                    (x.ResourceKey, x.NarrativeStyle, x.Parameters)
+                    (y.ResourceKey, y.NarrativeStyle, y.Parameters)
+            | _ -> invalidArg "yobj" $"cannot compare values of different types '%s{x.GetType().Name}' '%s{yobj.GetType().Name}'"
+    override x.Equals yobj =
+        match yobj with
+        | :? Text as y ->
+            (x.ResourceKey, x.NarrativeStyle, x.Parameters) = (y.ResourceKey, y.NarrativeStyle, y.Parameters)
+        | _ -> false
+    override x.GetHashCode() =
+        hash (x.ResourceKey, x.NarrativeStyle, x.Parameters)            
+
 
 module Text =
-    
     let create resourceKey =
         { ResourceKey = resourceKey; NarrativeStyle = None; Parameters = None; ParameterFormatting = None }
         

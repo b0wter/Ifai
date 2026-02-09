@@ -66,7 +66,7 @@ type SavingState =
     | Finished
 
     
-let init (parameters: ToSavingModeParameters) : SavingState * RuntimeAction * RenderAction =
+let init (parameters: ToSavingModeParameters) : SavingState * RuntimeAction<SavingEvent> * RenderAction =
     match parameters.Filename with
     | Some filename -> (filename, false) |> SavingFile, (filename, false) |> RuntimeAction.SaveGame, RenderAction.Nothing
     | None -> AskingForFilename, RuntimeAction.Nothing, RenderAction.Fallback "Enter the name of the file you want to save to:"
@@ -96,7 +96,7 @@ let resolveUserIntent (state: SavingState) (input: Input) : SavingIntent =
     | Finished, _ -> SavingIntent.Unknown
 
 
-let handleIntentForAskingForFilename (world: World) (intent: SavingIntent) : StepResult<SavingState> =
+let handleIntentForAskingForFilename (world: World) (intent: SavingIntent) : StepResult<SavingState, SavingEvent> =
     match intent with
     | EnterFilename filename ->
         StepResult.init
@@ -120,7 +120,7 @@ let handleIntentForAskingForFilename (world: World) (intent: SavingIntent) : Ste
         |> StepResult.withRender (RenderAction.Fallback "I do not understand, please try again. Enter the name of the file you want to save to")
 
 
-let handleIntentForAskingForOverwritePermission (world: World) (intent: SavingIntent) filename : StepResult<SavingState> =
+let handleIntentForAskingForOverwritePermission (world: World) (intent: SavingIntent) filename : StepResult<SavingState, SavingEvent> =
     match intent with
     | OverwriteFile ->
         StepResult.init
@@ -154,7 +154,7 @@ let handleIntentForAskingForOverwritePermission (world: World) (intent: SavingIn
         |> StepResult.withRender (RenderAction.Fallback "I do not understand, please try again. Do you want to overwrite the file? [yes/no/abort]")
 
 
-let handleIntentForSavingFile (world: World) (intent: SavingIntent) (filename, allowOverwrite) : StepResult<SavingState> =
+let handleIntentForSavingFile (world: World) (intent: SavingIntent) (filename, allowOverwrite) : StepResult<SavingState, SavingEvent> =
     match intent with
     | _ ->
         StepResult.init
@@ -163,7 +163,7 @@ let handleIntentForSavingFile (world: World) (intent: SavingIntent) (filename, a
         |> StepResult.withRender (RenderAction.Fallback "Inputs are not supported while saving the game")
 
 
-let handleIntentForFinished (world: World) (intent: SavingIntent) : StepResult<SavingState> =
+let handleIntentForFinished (world: World) (intent: SavingIntent) : StepResult<SavingState, SavingEvent> =
     match intent with
     | _ ->
         StepResult.init
@@ -173,7 +173,7 @@ let handleIntentForFinished (world: World) (intent: SavingIntent) : StepResult<S
         |> StepResult.withTransition ModeTransition.Finished
 
 
-let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : StepResult<SavingState> =
+let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : StepResult<SavingState, SavingEvent> =
     match state with
     | AskingForFilename -> handleIntentForAskingForFilename world intent
     | AskingForOverwritePermission filename -> handleIntentForAskingForOverwritePermission world intent filename
@@ -181,7 +181,7 @@ let handleIntent (world: World) (state: SavingState) (intent: SavingIntent) : St
     | Finished -> handleIntentForFinished world intent
 
 
-let update (input: StepInput<SavingState, SavingEvent>) : StepResult<SavingState> =
+let update (input: StepInput<SavingState, SavingEvent>) : StepResult<SavingState, SavingEvent> =
     match input.State, input.Event with
     | _, UserInput userInput ->
         userInput

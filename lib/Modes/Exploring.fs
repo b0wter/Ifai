@@ -24,6 +24,8 @@ type ExploringBuiltIn =
     | Examine of string
     | Take of string
     | TakeAll
+    | Directions
+    
     
     
 let exploringBuiltInPriority b =
@@ -44,6 +46,7 @@ let exploringBuiltInPriority b =
     | Examine _ -> 3
     | Take _ ->  3
     | TakeAll ->  3
+    | Directions -> 3
 
 
 let private english =
@@ -68,6 +71,7 @@ let private english =
     // TODO: Replacing the option with an empty string is not the final solution!
     ["t"; "take"], fun argument -> Take (argument |> Option.defaultValue String.Empty)
     ["take all"; "takeall"; "get all"; "getall"], fun _ -> TakeAll
+    ["exits"; "directions"; "dir" ], fun _ -> Directions
     ]
     
     
@@ -91,6 +95,7 @@ let private german =
     // TODO: Replacing the option with an empty string is not the final solution!
     ["n "; "nehme "; "nimm "], fun argument -> Take (argument |> Option.defaultValue String.Empty)
     ["nimm alles" ], fun _ -> TakeAll
+    ["wege"; "richtungen"; "ziele"; "ausgänge"; "ausgang" ], fun _ -> Directions
     ]
     
     
@@ -107,13 +112,14 @@ type Input =
 
 /// This represents the user's intent as extracted from the entered input
 type ExploringIntent =
-    | Move of Directions.Exit
+    | Move of Exit
     | Wait
     | LookAround
     | Examine of string
     | Take of string
     | TakeAll
     | Ignore of string
+    | Directions
     | Unknown
     
     
@@ -138,22 +144,23 @@ let parser (language: Language) (input: string) : Input =
 
 let matchInputWithIntent (input: ExploringBuiltIn) : ExploringIntent =
     match input with
-    | North -> Move (Directions.Exit.Dir Directions.North)
-    | NorthEast -> Move (Directions.Exit.Dir Directions.NorthEast)
-    | East -> Move (Directions.Exit.Dir Directions.East)
-    | SouthEast -> Move (Directions.Exit.Dir Directions.SouthEast)
-    | South -> Move (Directions.Exit.Dir Directions.South)
-    | SouthWest -> Move (Directions.Exit.Dir Directions.SouthWest)
-    | West -> Move (Directions.Exit.Dir Directions.West)
-    | NorthWest -> Move (Directions.Exit.Dir Directions.NorthWest)
-    | Up -> Move (Directions.Exit.Dir Directions.Up)
-    | Down -> Move (Directions.Exit.Dir Directions.Down)
-    | Left -> Move (Directions.Exit.Dir Directions.Left)
-    | Right -> Move (Directions.Exit.Dir Directions.Right)
+    | North -> Move (Exit.Dir Direction.North)
+    | NorthEast -> Move (Exit.Dir Direction.NorthEast)
+    | East -> Move (Exit.Dir Direction.East)
+    | SouthEast -> Move (Exit.Dir Direction.SouthEast)
+    | South -> Move (Exit.Dir Direction.South)
+    | SouthWest -> Move (Exit.Dir Direction.SouthWest)
+    | West -> Move (Exit.Dir Direction.West)
+    | NorthWest -> Move (Exit.Dir Direction.NorthWest)
+    | Up -> Move (Exit.Dir Direction.Up)
+    | Down -> Move (Exit.Dir Direction.Down)
+    | Left -> Move (Exit.Dir Direction.Left)
+    | Right -> Move (Exit.Dir Direction.Right)
     | ExploringBuiltIn.LookAround -> LookAround
     | ExploringBuiltIn.Take x -> Take x
     | ExploringBuiltIn.Examine x -> Examine x
     | ExploringBuiltIn.TakeAll -> TakeAll
+    | ExploringBuiltIn.Directions -> Directions
 
 
 let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : ExploringIntent =
@@ -165,13 +172,13 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
     | Input.Sentence _ -> ExploringIntent.Ignore "sentence input is not yet supported"
 
 
-let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : StepResult<ExploringState> =
+let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : StepResult<ExploringState, ExploringEvent> =
     match intent with
     | Move exit ->
         match world |> World.getRoomIdForExit exit with
         | Some nextRoomId ->
             StepResult.init world state
-            |> StepResult.withTransition (ModeTransition.StartTransition { FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId })
+            |> StepResult.withTransition (ModeTransition.StartTransition { FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId; EnteringMode = EnteringRoomMode.Full; LeavingMode = LeavingRoomMode.Full })
         | None ->
             StepResult.init world state
             |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "no_exit_found")))
@@ -195,9 +202,17 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
     | Wait ->
         StepResult.init { world with Turn = world.Turn + 1u } state
         |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "waiting_description")))
+    | Directions ->
+        match world |> World.getExitsByRoomId world.CurrentRoomId with
+        | Some exits ->
+            StepResult.init world state
+            |> StepResult.withRender
+                (RenderAction.Batch (RenderAction.Text (Text.create (TextKey.create "directions_description")) :: (exits |> List.map (Exit.asText >> RenderAction.Text))))
+        | None ->
+            failwith $"Tried to get exits for room {world.CurrentRoomId} but it does not exist"
 
 
-let update (input: StepInput<ExploringState, ExploringEvent>) : StepResult<ExploringState> =
+let update (input: StepInput<ExploringState, ExploringEvent>) : StepResult<ExploringState, ExploringEvent> =
     match input.Event with
     | UserInput userInput ->
         let intent = resolveUserIntent input.World input.State userInput

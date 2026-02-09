@@ -31,7 +31,7 @@ type Event =
 /// This is the result of the top-level update function
 type GlobalResult = {
     Model: Model
-    Runtime: RuntimeAction
+    Runtime: RuntimeAction<Event>
     Render: RenderAction
     Transition: ModeTransition
 }
@@ -39,7 +39,7 @@ type GlobalResult = {
 module GlobalResult =
     let init m = { Model = m; Runtime = RuntimeAction.Nothing; Render = RenderAction.Nothing; Transition = ModeTransition.Nothing }
     
-    let withRuntime (a: RuntimeAction) (r: GlobalResult) : GlobalResult =
+    let withRuntime (a: RuntimeAction<Event>) (r: GlobalResult) : GlobalResult =
         { r with Runtime = a }
 
     let withRender (a: RenderAction) (r: GlobalResult) : GlobalResult =
