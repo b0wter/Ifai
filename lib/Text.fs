@@ -100,16 +100,16 @@ type Text =
     Parameters: Map<ParameterKey, ParameterType> option
     ParameterFormatting: Map<ParameterKey, Parameter -> string> option
     }
-    interface System.IComparable with
-        member x.CompareTo yobj =
-            match yobj with
+    interface IComparable with
+        member x.CompareTo yObj =
+            match yObj with
             | :? Text as y ->
                 compare
                     (x.ResourceKey, x.NarrativeStyle, x.Parameters)
                     (y.ResourceKey, y.NarrativeStyle, y.Parameters)
-            | _ -> invalidArg "yobj" $"cannot compare values of different types '%s{x.GetType().Name}' '%s{yobj.GetType().Name}'"
-    override x.Equals yobj =
-        match yobj with
+            | _ -> invalidArg "yobj" $"cannot compare values of different types '%s{x.GetType().Name}' '%s{yObj.GetType().Name}'"
+    override x.Equals yObj =
+        match yObj with
         | :? Text as y ->
             (x.ResourceKey, x.NarrativeStyle, x.Parameters) = (y.ResourceKey, y.NarrativeStyle, y.Parameters)
         | _ -> false

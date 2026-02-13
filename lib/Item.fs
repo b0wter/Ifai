@@ -14,10 +14,9 @@ type Interactability =
     | All
 
 
-
-type ItemId = ItemId of Guid
+type ItemId = ItemId of string
 module ItemId =
-    let create () = Guid.NewGuid() |> ItemId
+    let create id = id |> ItemId
     let fromGuid guid = guid |> ItemId
     let value (ItemId i) = i
     

@@ -5,8 +5,13 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/Tests/">
+    <Project Path="tests/ai/Ifai.Ai.Tests.csproj" />
+    <Project Path="tests/integration/Ifai.Integration.Tests.fsproj" />
     <Project Path="tests/library/Ifai.Library.Tests.fsproj" />
   </Folder>
+  <Project Path="ai/Ifai.Ai.csproj" />
   <Project Path="cli/Ifa.Cli.fsproj" />
+  <Project Path="gui/Ifai.Gui.csproj" />
   <Project Path="lib/Ifai.Lib.fsproj" />
+  <Project Path="tui\Ifai.Tui.csproj" />
 </Solution>

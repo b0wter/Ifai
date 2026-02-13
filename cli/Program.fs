@@ -120,9 +120,9 @@ let textsMap =
 
 
 let dummyRoomIds = [|
-    Guid.NewGuid() |> RoomId.create
-    Guid.NewGuid() |> RoomId.create
-    Guid.NewGuid() |> RoomId.create
+    "dummy.1" |> RoomId.create
+    "dummy.2" |> RoomId.create
+    "dummy.3" |> RoomId.create
 |]
 
 
@@ -135,6 +135,30 @@ let dummyRooms = [
 let world = World.init (dummyRooms |> Map.values |> List.ofSeq) dummyRoomIds[0] []
 let state = { Exploring.ExploringState.Foo = 0 } |> GameMode.Exploring
 let model = { Model.World = world; Model.GameMode = [state]; Model.Language = Language.create "en"; Model.TextResources = textResources }
+
+let printDebug (result: GlobalResult) (event: Event) =
+    do Console.ForegroundColor <- ConsoleColor.Yellow
+    do Console.Write($"{result.Model.GameMode.Head.GetType().Name}")
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Green
+    do Console.Write(event)
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Blue
+    do Console.Write(result.Runtime)
+    do Console.ResetColor ()
+    do Console.Write(" - ")
+    do Console.ForegroundColor <- ConsoleColor.Magenta
+    do Console.WriteLine(result.Transition)
+    do Console.ResetColor ()
+let createDebugOutput () =
+    { new IDebugOutput with
+        member this.RenderState (result: GlobalResult) (event: Event) = printDebug result event
+        member this.RenderSystemMessage (message: string) =
+            Console.ForegroundColor <- ConsoleColor.Red
+            Console.WriteLine(message)}
+
 
 let textWriter filename allowOverwrite (content: string) =
     try
@@ -159,4 +183,29 @@ let serializer object =
     | exn -> Error exn.Message
 
 
-Runtime.run textWriter serializer model
+let createFileIo () =
+    { new IFileIO with
+        member this.WriteFile filename allowOverwrite content = textWriter filename allowOverwrite content
+        member this.Serialize obj = serializer obj }
+
+let createRenderer () =
+     let render (text: string) (style: NarrativeStyle) =
+         Console.ResetColor()
+         match style with
+         | Regular -> ()
+         | Emphasized -> Console.ForegroundColor <- ConsoleColor.DarkYellow
+         | Hint -> Console.ForegroundColor <- ConsoleColor.Gray
+         | Dialogue -> Console.ForegroundColor <- ConsoleColor.DarkGreen
+         | System -> Console.ForegroundColor <- ConsoleColor.DarkRed
+         Console.WriteLine(text)
+
+     { new IRenderer with
+         member this.Clear () = Console.Clear()
+         member this.RenderGameState state = ()
+         member this.RenderText (text, style) = render text style }
+
+let createInput () =
+    { new IAsyncInput with
+        member this.ReadInput ct = AsyncConsoleReader.AsyncConsole.ReadLineAsync(ct).AsTask() |> Async.AwaitTask }
+
+Runtime.run (createInput()) (createRenderer()) (createFileIo()) (createDebugOutput()) model

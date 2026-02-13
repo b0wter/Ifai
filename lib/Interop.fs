@@ -10,6 +10,13 @@ type VisibilityInfo =
     | Hidden = 1
     | Concealed = 2
 
+type NarrativeStyleInfo =
+    | Regular = 0
+    | Emphasized = 1
+    | Hint = 2
+    | Dialogue = 3
+    | System = 4
+
 type ItemInfo =
     { Name: string
       Description: string
@@ -28,25 +35,34 @@ type RoomInfo =
     { Name: string
       Description: string
       Exits: ExitInfo[]
+      Items: ItemInfo[]
       Characters: CharacterInfo[] }
 
 type PlayerInfo =
     { Inventory: ItemInfo[] }
 
-type GameStateView =
+type GameStateInfo =
     { Room: RoomInfo
       Player: PlayerInfo }
+
 
 type IRenderer =
     abstract member Clear : unit -> unit
     abstract member RenderText : string * NarrativeStyle -> unit
-    abstract member RenderGameState: GameStateView -> unit
+    abstract member RenderGameState: GameStateInfo -> unit
 
 
 type IFileIO =
     abstract member WriteFile : filename:string -> allowOverwrite:bool -> content:string -> WriteFileResult
-    abstract member Serializer: obj:obj -> Result<string, string>
+    abstract member Serialize: obj:obj -> Result<string, string>
     
     
 type IDebugOutput =
-    abstract member Render : (GlobalResult * Event) -> unit
+    abstract member RenderState: GlobalResult -> Event -> unit
+    abstract member RenderSystemMessage: string -> unit
+    
+type IAsyncInput =
+    abstract member ReadInput : System.Threading.CancellationToken -> Async<string>
+
+type IParserHelper =
+    abstract member ResolveActionsForSentence : string -> obj []

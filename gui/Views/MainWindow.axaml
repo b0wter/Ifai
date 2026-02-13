@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Ifai.Gui.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Ifai.Gui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="Ifai.Gui">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid ColumnDefinitions="7*, Auto, 3*">
+        <!-- Left Side: History and Input -->
+        <Grid Grid.Column="0" RowDefinitions="*, Auto">
+            <DockPanel Grid.Row="0" Margin="5">
+                <TextBlock DockPanel.Dock="Top" Text="History" FontWeight="Bold"/>
+                <ListBox Padding="5" />
+            </DockPanel>
+            <TextBox Grid.Row="1" Margin="5" Padding="5" Watermark="Type here..." />
+        </Grid>
+
+        <GridSplitter Grid.Column="1" Background="Gray" ResizeDirection="Columns"/>
+
+        <!-- Right Side: Room and Inventory -->
+        <Grid Grid.Column="2" RowDefinitions="*, Auto, *">
+            <DockPanel Grid.Row="0" Margin="5">
+                <TextBlock DockPanel.Dock="Top" Text="room" FontWeight="Bold"/>
+                <ListBox Padding="5" />
+            </DockPanel>
+            <GridSplitter Grid.Row="1" Background="Gray" ResizeDirection="Rows"/>
+            <DockPanel Grid.Row="2" Margin="5">
+                <TextBlock DockPanel.Dock="Top" Text="inventory" FontWeight="Bold"/>
+                <ListBox Padding="5" />
+            </DockPanel>
+        </Grid>
+    </Grid>
+
+</Window>

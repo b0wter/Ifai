@@ -113,8 +113,7 @@ let runParser (preConfiguredParser: Parsing) : Event =
 
 
 let runAction
-        (writeToFile: string -> bool -> string -> WriteFileResult)
-        (serializer: obj -> Result<string, string>)
+        (fileIo: IFileIO)
         (terminate: unit -> unit)
         (action: RuntimeAction<Event>) : Event option =
     match action with
@@ -125,7 +124,7 @@ let runAction
     | Parsing p -> p |> runParser |> Some
     | WriteFile (filename, allowOverwrite, content) ->
         content
-        |> (writeToFile filename allowOverwrite) 
+        |> (fileIo.WriteFile filename allowOverwrite) 
         |> (function
             | WriteFileResult.Success -> Event.FileWrittenSuccessfully
             | WriteFileResult.Failure error -> Event.FileWriteFailed error
@@ -134,8 +133,8 @@ let runAction
     | ReadFile _ -> failwith "todo: not yet implemented"
     | SerializeAndWriteToFile (filename, allowOverwrite, obj) ->
         obj
-        |> serializer
-        |> Result.map (writeToFile filename allowOverwrite)
+        |> fileIo.Serialize
+        |> Result.map (fileIo.WriteFile filename allowOverwrite)
         |> (function
             | Ok WriteFileResult.Success -> Event.FileWrittenSuccessfully
             | Ok (WriteFileResult.Failure err) -> err |> Event.FileWriteFailed
@@ -143,45 +142,18 @@ let runAction
             | Error err -> err |> Event.FileWriteFailed)
         |> Some
     | OfEvent e -> Some e
-
-
     // The SaveGame case is special since it requires a current instance of the model. That model is only known to the
     // runtime and that's why the `SaveGame` action is replaced with a `SerializeAndWriteToFile` action with the world
     // as parameter
     | SaveGame _ -> failwith "SaveGame must be resolved by the runtime and cannot be run as an action"
-
-
-let printDebug (result: GlobalResult) (event: Event) =
-    do Console.ForegroundColor <- ConsoleColor.Yellow
-    do Console.Write($"{result.Model.GameMode.Head.GetType().Name}")
-    do Console.ResetColor ()
-    do Console.Write(" - ")
-    do Console.ForegroundColor <- ConsoleColor.Green
-    do Console.Write(event)
-    do Console.ResetColor ()
-    do Console.Write(" - ")
-    do Console.ForegroundColor <- ConsoleColor.Blue
-    do Console.Write(result.Runtime)
-    do Console.ResetColor ()
-    do Console.Write(" - ")
-    do Console.ForegroundColor <- ConsoleColor.Magenta
-    do Console.WriteLine(result.Transition)
-    do Console.ResetColor ()
     
     
-let rec render (textResources: TextResources) (language: Language) (action: RenderAction) =
+let rec render (renderer: IRenderer) (textResources: TextResources) (language: Language) (action: RenderAction) =
     // TODO: since there is no scripting or DSL for the game logic there is no sense in having parameterized texts
-    let clear = fun () -> Console.Clear ()
+    let clear = renderer.Clear
     let render (text: Text.DisplayableText) =
         fun () ->
-            do Console.ResetColor ()
-            do match text.NarrativeStyle with
-               | Regular -> ()
-               | Emphasized -> Console.ForegroundColor <- ConsoleColor.Magenta
-               | Hint -> Console.ForegroundColor <- ConsoleColor.Gray
-               | Dialogue -> Console.ForegroundColor <- ConsoleColor.Cyan
-               | System -> Console.ForegroundColor <- ConsoleColor.Red
-            do text.Text |> Console.WriteLine
+            renderer.RenderText (text.Text, text.NarrativeStyle)
 
     let formatter (text: Text) =
         text
@@ -240,14 +212,13 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         result.Render
 
 
-let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: obj -> Result<string, string>) (model: Model) =
+let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (debugOutput: IDebugOutput) (model: Model) =
     let cts = new CancellationTokenSource()
     let terminate = fun () -> cts.Cancel()
-    let runAction = runAction fileWriter serializer terminate
-    let mutable pendingTransition : ModeTransition option = None
+    let runAction = runAction fileIo terminate
 
     let agent = MailboxProcessor<Event>.Start(fun inbox ->
-        let rec loop (currentModel: Model) = async {
+        let rec loop (currentModel: Model) (pendingTransition: ModeTransition option) = async {
             try
                 (*
                     To transition between states and not lose any messages, the transition works as follows:
@@ -261,9 +232,9 @@ let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: o
                 | Some event ->
                     let result = update currentModel event
                     
-                    do printDebug result event
+                    do debugOutput.RenderState result event
                     
-                    do result.Render |> render model.TextResources model.Language
+                    do result.Render |> render renderer model.TextResources model.Language
 
                     do
                        // Since the SaveGame action requires the current `model` it can only be truly constructed in
@@ -274,17 +245,21 @@ let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: o
                         |> runAction
                         |> Option.iter inbox.Post
                     
-                    if not result.Transition.IsNothing then pendingTransition <- Some result.Transition
-                    
                     if cts.Token.IsCancellationRequested then
                         do printfn "Shutting down"
                         return ()
                     else
-                        return! loop result.Model
+                        match result.Transition, pendingTransition with
+                        | ModeTransition.Nothing, None ->
+                            return! loop result.Model None
+                        | otherTransition, None ->
+                            return! loop result.Model (Some otherTransition)
+                        | otherTransition, Some pending ->
+                            do debugOutput.RenderSystemMessage $"Received transition to %A{otherTransition} while having pending transition to %A{pending}, ignoring new transition and keep pending transition"
+                            return! loop result.Model pendingTransition
                 | None ->
                     match pendingTransition with
                     | Some t ->
-                        pendingTransition <- None
                         let newModel, runtimeAction, renderAction = currentModel |> runTransition t
                         
                         do (match runtimeAction with
@@ -293,10 +268,10 @@ let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: o
                             |> runAction
                             |> Option.iter inbox.Post
                         
-                        do renderAction |> render model.TextResources model.Language
-                        return! loop newModel
+                        do renderAction |> render renderer model.TextResources model.Language
+                        return! loop newModel None
                     | None ->
-                        return! loop currentModel
+                        return! loop currentModel None
             with
             | exn ->
                 do printfn $"Error while running command: %s{exn.Message}"
@@ -305,7 +280,7 @@ let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: o
                 do cts.Cancel ()
                 return ()
         }
-        loop model
+        loop model None
     )
     
     let startInputSubscription () =
@@ -314,10 +289,9 @@ let run (fileWriter: string -> bool -> string -> WriteFileResult) (serializer: o
                it should only prepare the raw input so that the game/system logic does not need to care about
                trimming/splitting the input *)
             while not cts.Token.IsCancellationRequested do
-                let! input = AsyncConsoleReader.AsyncConsole.ReadLineAsync(cts.Token).AsTask() |> Async.AwaitTask
+                let! input = externalInput.ReadInput(cts.Token)
                 do input.Trim() |> RawInput |> agent.Post
         } |> Async.Start
     
     startInputSubscription ()
     do cts.Token.WaitHandle.WaitOne() |> ignore
-    

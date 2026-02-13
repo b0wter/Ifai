@@ -1,8 +1,6 @@
 namespace Ifai.Lib
 
-open System
-
-type RoomId = private RoomId of Guid
+type RoomId = private RoomId of string
 module RoomId =
     let create g = g |> RoomId 
     let value (RoomId r) = r
