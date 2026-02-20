@@ -35,7 +35,7 @@ public class AiClient
         _systemMessage = message;
     }
 
-    public async Task<string> PromptAsync(string prompt, bool continueChat = true)
+    public async Task<string> PromptAsync(string prompt, bool continueChat = false)
     {
         if (!continueChat)
         {

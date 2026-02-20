@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     [ObservableProperty] private string _inputText = string.Empty;
     [ObservableProperty] private string _roomDescription = string.Empty;
+    [ObservableProperty] private string _roomName = string.Empty;
 
     public System.Collections.ObjectModel.ObservableCollection<NewHistoryItemMessage> History { get; } = new();
     public System.Collections.ObjectModel.ObservableCollection<string> DebugMessages { get; } = new();
@@ -103,7 +104,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void HandleUpdatedGameState(GameStateInfo gameState)
     {
         RoomDescription = gameState.Room.Description.Text;
-        // TODO: Update room and inventory displays
+        RoomName = gameState.Room.Name.Text;
     }
 
     private void HandleClearScreen()

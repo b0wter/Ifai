@@ -97,9 +97,6 @@
                                 ConverterParameter={x:Static lib:NarrativeStyleInfo.System}}"
                             TextWrapping="Wrap">
                             <TextBlock.Styles>
-                                <Style Selector="TextBlock.regular">
-                                    <Setter Property="Foreground" Value="White"/>
-                                </Style>
                                 <Style Selector="TextBlock.emphasized">
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
@@ -123,7 +120,10 @@
         <GridSplitter Grid.Row="1" Grid.Column="3" Background="Transparent" ResizeDirection="Columns"/>
         
         <Grid Grid.Row="1" Grid.Column="4" Margin="0,5,10,5" RowDefinitions="*,Auto,*">
-            <TextBlock MaxLines="999" Grid.Row="0" Text="{Binding RoomDescription}"/>
+            <DockPanel Grid.Row="0" LastChildFill="True">
+                <TextBlock DockPanel.Dock="Top" MaxLines="1" Text="{Binding RoomName}" FontWeight="Bold"/>
+                <TextBlock DockPanel.Dock="Bottom" MaxLines="999" Text="{Binding RoomDescription}"/>
+            </DockPanel>
             
             <GridSplitter Grid.Row="1" Background="Transparent" ResizeDirection="Rows" Height="5"/>
             
