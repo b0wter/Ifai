@@ -16,8 +16,28 @@ let private createConnections<'a> (connections: Connection<'a> list) : Map<Exit,
 
 
 let dummyRooms = [
-    { Id = dummyRoomIds[0]; Environment = RoomEnvironment.``default``; OnEnter = None; OnLeaving = None; Name = textsMap |> Map.find (TextKey.create "dummy1_name"); Description = textsMap |> Map.find (TextKey.create "dummy1_description"); Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[2])] |> createConnections }
-    { Id = dummyRoomIds[1]; Environment = RoomEnvironment.``default``; OnEnter = None; OnLeaving = None; Name = textsMap |> Map.find (TextKey.create "dummy2_name"); Description = textsMap |> Map.find (TextKey.create "dummy2_description"); Connections = [Connection.create (Exit.Dir Direction.West) (dummyRoomIds[0])] |> createConnections }
-    { Id = dummyRoomIds[2]; Environment = RoomEnvironment.``default``; OnEnter = None; OnLeaving = None; Name = textsMap |> Map.find (TextKey.create "dummy3_name"); Description = textsMap |> Map.find (TextKey.create "dummy3_description"); Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[0])] |> createConnections }
+    {
+        Id = dummyRoomIds[0]
+        Environment = RoomEnvironment.``default``
+        OnEnter = None
+        OnLeaving = None
+        Name = textsMap |> Map.find (TextKey.create "dummy1_name")
+        Description = textsMap |> Map.find (TextKey.create "dummy1_description")
+        Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[1]); Connection.create (Exit.Dir Direction.West) (dummyRoomIds[2])] |> createConnections
+    }
+    { Id = dummyRoomIds[1]
+      Environment = RoomEnvironment.``default``
+      OnEnter = None
+      OnLeaving = None
+      Name = textsMap |> Map.find (TextKey.create "dummy2_name")
+      Description = textsMap |> Map.find (TextKey.create "dummy2_description")
+      Connections = [Connection.create (Exit.Dir Direction.West) (dummyRoomIds[0])] |> createConnections }
+    { Id = dummyRoomIds[2]
+      Environment = RoomEnvironment.``default``
+      OnEnter = None
+      OnLeaving = None
+      Name = textsMap |> Map.find (TextKey.create "dummy3_name")
+      Description = textsMap |> Map.find (TextKey.create "dummy3_description")
+      Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[0])] |> createConnections }
 ]
 

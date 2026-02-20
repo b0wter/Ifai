@@ -1,0 +1,82 @@
+room: "stone_chamber"
+
+name:
+  en: "Stone Chamber"
+  de: "Steinkammer"
+
+base:
+  en: |
+    You stand in a circular stone chamber. Moss clings to the walls.
+    A cracked pedestal stands at the center.
+  de: |
+    Du stehst in einer kreisförmigen Steinkammer. Moos klebt an den Wänden.
+    Ein rissiges Podest steht im Zentrum.
+
+objects:
+  torch:
+    present:
+      en: "A torch flickers weakly on the wall."
+      de: "Von der Wand leuchtet eine schwache Fackel."
+    absent:
+      en: ""
+      fr: ""
+      es: ""
+
+  golden_idol:
+    present:
+      en: "The golden idol rests atop the pedestal."
+      de: "Das goldene Idole steht auf dem Podest."
+    absent:
+      en: "The pedestal stands conspicuously empty."
+      de: "Das Podest ist verdächtig leer."
+
+states:
+  flooded:
+    rewrite:
+      en: |
+        Water fills the chamber, lapping at the walls.
+        The pedestal rises like a small island from the dark surface.
+      de: |
+        Wasser fließt in die Kammer, schlägt an den Wänden.
+        Das Podest hebt sich wie eine kleine Insel aus der dunklen Oberfläche.
+    phrases:
+      en:
+        - "Water drips from the ceiling, pooling around your feet."
+      de:
+        - "Wasser tropft von der Decke und sammelt sich um deine Füße."
+    priority: 100
+    interactions:
+      burning:
+        phrases:
+          en: ["Steam hisses as flames meet the water."]
+          de: ["Dampf steigt auf, als Flammen das Wasser treffen."]
+
+  burning:
+    rewrite:
+      en: |
+        Flames roar up the moss-covered walls.
+        Thick smoke rolls along the ceiling.
+      de: |
+        Flammen donnern über die moosbedeckten Wände.
+        Dicke Rauchwolken rollen unter der Decke.
+    priority: 110
+
+  dark:
+    phrases:
+      en: ["The chamber is cloaked in shadow."]
+      de: ["Die Kammer ist in Schatten gehüllt."]
+    priority: 50
+    incompatible_with:
+      - burning
+
+variables:
+  pedestal:
+    en: "pedestal"
+    de: "Podest"
+
+notes: |
+  - Authors only write text. The engine handles merging, ordering, grammar, and conflicts.
+  - States marked as 'rewrite' replace the base description when active.
+  - Phrases are minor additions merged with base or other active states.
+  - Interaction phrases trigger when specific combinations of states are active.
+  - Variables (like {{pedestal}}) can be used to avoid translation inconsistencies.

@@ -9,6 +9,8 @@
         <Compile Include="Texts.fs" />
         <Compile Include="Rooms.fs" />
         <Compile Include="World.fs" />
+        <Content Include="Data\room_stone_chamber.yaml" />
+        <Content Include="Data\item_golden_idol.yaml" />
     </ItemGroup>
 
     <ItemGroup>
