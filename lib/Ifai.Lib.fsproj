@@ -6,9 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Shared.fs" />
+    <Compile Include="LightLevel.fs" />
     <Compile Include="Text.fs" />
     <Compile Include="Parser.fs" />
-    <Compile Include="Exits.fs" />
+    <Compile Include="Connection.fs" />
     <Compile Include="Room.fs" />
     <Compile Include="Item.fs" />
     <Compile Include="World.fs" />

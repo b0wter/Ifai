@@ -3,6 +3,7 @@ namespace Ifai.Lib
 type World = {
     Turn: uint
     Rooms: Map<RoomId, Room>
+    RoomModifiers: Map<RoomId, Set<RoomModifiers>>
     CurrentRoomId: RoomId
     Items: Map<ItemId, Item>
 }
@@ -17,11 +18,11 @@ module World =
             items
             |> List.map (fun i -> i.Id, i)
             |> Map.ofList
-        { Turn = 0u; Rooms = roomMap; CurrentRoomId = initialRoom; Items = itemMap }
+        { Turn = 0u; Rooms = roomMap; RoomModifiers = Map.empty; CurrentRoomId = initialRoom; Items = itemMap }
 
     
     /// Gets the id of the room that is connected to the current room via the given exit
-    let getRoomIdForExit (exit: Exit) (world: World) : RoomId option =
+    let getConnectionForExit (exit: Exit) (world: World) : Connection<RoomId> option =
         world.Rooms
         |> Map.tryFind world.CurrentRoomId
         |> Option.bind (fun r -> r.Connections |> Map.tryFind exit)
@@ -44,7 +45,7 @@ module World =
             |> Map.tryFind world.CurrentRoomId
             |> Option.map _.Connections
             |> Option.bind (Map.tryFind exit)
-            |> Option.bind (fun roomId -> world.Rooms |> Map.tryFind roomId)
+            |> Option.bind (fun connection -> world.Rooms |> Map.tryFind connection.ToId)
 
         let turnIncrement = if increaseTurnCounter then 1u else 0u
 

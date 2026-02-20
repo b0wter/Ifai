@@ -12,6 +12,7 @@
   <Project Path="ai/Ifai.Ai.csproj" />
   <Project Path="cli/Ifa.Cli.fsproj" />
   <Project Path="gui/Ifai.Gui.csproj" />
+  <Project Path="resources/Ifai.Resources.fsproj" />
   <Project Path="lib/Ifai.Lib.fsproj" />
   <Project Path="tui\Ifai.Tui.csproj" />
 </Solution>

@@ -175,10 +175,21 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
 let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : StepResult<ExploringState, ExploringEvent> =
     match intent with
     | Move exit ->
-        match world |> World.getRoomIdForExit exit with
-        | Some nextRoomId ->
-            StepResult.init world state
-            |> StepResult.withTransition (ModeTransition.StartTransition { FromRoomId = world.CurrentRoomId; ToRoomId = nextRoomId; EnteringMode = EnteringRoomMode.Full; LeavingMode = LeavingRoomMode.Full })
+        match world |> World.getConnectionForExit exit with
+        | Some connection ->
+            match connection.Usability with
+            | Open ->
+                StepResult.init world state
+                |> StepResult.withTransition (ModeTransition.StartTransition { FromRoomId = world.CurrentRoomId; ToRoomId = connection.ToId; EnteringMode = EnteringRoomMode.Full; LeavingMode = LeavingRoomMode.Full })
+            | Closed ->
+                StepResult.init world state
+                |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "need_to_open_door_first")))
+            | Locked ->
+                StepResult.init world state
+                |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "door_is_locked")))
+            | Obstructed ->
+                StepResult.init world state
+                |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "door_is_obstructed")))
         | None ->
             StepResult.init world state
             |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "no_exit_found")))

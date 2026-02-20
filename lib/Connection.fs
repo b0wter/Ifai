@@ -12,6 +12,29 @@ type Exit =
     | Custom of Text
 
 
+type Usability =
+    | Open
+    /// Closed does NOT mean locked, simply closed
+    | Closed
+    | Locked
+    | Obstructed
+
+
+type Connection<'id> = {
+    // This record has no name property because the name is derived from the `Exit`
+    Exit: Exit
+    ToId: 'id
+    /// Describes whether the exit is visible to the player
+    Visibility: Shared.Visibility
+    /// Describes whether the exit is usable
+    Usability: Usability
+    Description: Text option
+}
+
+module Connection =
+    let create<'id> exit (toId: 'id) = { Exit = exit; ToId = toId; Visibility = Shared.Visible; Usability = Usability.Open; Description = None }
+
+
 module Exit =
     let asText (e: Exit) =
         match e with

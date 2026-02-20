@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\lib\Ifai.Lib.fsproj" />
+    <ProjectReference Include="..\resources\Ifai.Resources.fsproj" />
   </ItemGroup>
 
 </Project>

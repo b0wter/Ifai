@@ -1,18 +1,5 @@
 namespace Ifai.Lib
 
-open System
-
-type Visibility =
-    | Visible
-    | Hidden
-    | Concealed
-
-
-type Interactability =
-    | Nothing
-    | ExamineOnly
-    | All
-
 
 type ItemId = ItemId of string
 module ItemId =
@@ -28,12 +15,18 @@ type ItemLocation =
     | Nowhere
 
 
+type Interactability =
+    | Nothing
+    | ExamineOnly
+    | All
+
+
 type Item = {
     Id: ItemId
     Name: Text
     Description: Text
     IsPortable: bool
-    Visibility: Visibility
+    Visibility: Shared.Visibility
     Interactability: Interactability
 }
 

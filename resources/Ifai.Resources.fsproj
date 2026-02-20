@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="Texts.fs" />
+        <Compile Include="Rooms.fs" />
+        <Compile Include="World.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\lib\Ifai.Lib.fsproj" />
+    </ItemGroup>
+
+</Project>

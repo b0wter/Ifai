@@ -148,12 +148,20 @@ let runAction
     | SaveGame _ -> failwith "SaveGame must be resolved by the runtime and cannot be run as an action"
     
     
-let rec render (renderer: IRenderer) (textResources: TextResources) (language: Language) (action: RenderAction) =
+let rec render (textResources: TextResources) (language: Language) (action: RenderAction) : EngineMessage option =
     // TODO: since there is no scripting or DSL for the game logic there is no sense in having parameterized texts
-    let clear = renderer.Clear
+    let clear = EngineMessage.ClearScreen
+
+    let mapStyle (a: NarrativeStyle) : NarrativeStyleInfo =
+        match a with
+        | Regular -> NarrativeStyleInfo.Regular
+        | Emphasized -> NarrativeStyleInfo.Emphasized
+        | Hint -> NarrativeStyleInfo.Hint
+        | Dialogue -> NarrativeStyleInfo.Dialogue
+        | System -> NarrativeStyleInfo.System
+
     let render (text: Text.DisplayableText) =
-        fun () ->
-            renderer.RenderText (text.Text, text.NarrativeStyle)
+            EngineMessage.NewHistoryItem (text.Text, text.NarrativeStyle |> mapStyle)
 
     let formatter (text: Text) =
         text
@@ -162,17 +170,20 @@ let rec render (renderer: IRenderer) (textResources: TextResources) (language: L
 
     let display = formatter >> render
     
-    let rec asFunction (renderable: RenderAction) =
+    let rec asFunction (renderable: RenderAction) : EngineMessage list =
         match renderable with
-        | RenderAction.Nothing -> [fun _ -> ()]
-        | Clear -> [clear]
-        | Text text -> [text |> display]
-        | Fallback s -> 
+        | RenderAction.Nothing -> []
+        | RenderAction.Clear -> [clear]
+        | RenderAction.Text text -> [text |> display]
+        | RenderAction.Fallback s -> 
             let asDisplayable = { Text.DisplayableText.Text = s; Text.DisplayableText.NarrativeStyle = NarrativeStyle.Regular }
             [ asDisplayable |> render ]
-        | Batch batch -> batch |> List.collect asFunction
+        | RenderAction.Batch batch -> batch |> List.collect asFunction
 
-    do action |> asFunction |> List.iter (fun x -> x ())
+    match action |> asFunction with
+    | [] -> None
+    | [single] -> Some single
+    | many -> many |> Array.ofList |> EngineMessage.Batch |> Some
 
 
 /// <summary>
@@ -212,10 +223,37 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         result.Render
 
 
-let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (debugOutput: IDebugOutput) (model: Model) =
+let constructGameStateInfo (model: Model) : GameStateInfo =
+    let asDisplayable t =
+        match Text.toDisplayable model.TextResources model.Language None t with
+        | Ok d -> d
+        | Error e -> e
+        
+    let constructConnectionInfo (c: Connection<RoomId>) : ConnectionInfo =
+        let name = c.Exit |> Exit.asText |> asDisplayable
+        let visibility = c.Visibility |> VisibilityInfo.fromVisibility
+        { ConnectionInfo.Visibility = visibility
+          ConnectionInfo.Description = c.Description |> Option.map asDisplayable
+          ConnectionInfo.Name = name }
+
+    let constructRoomInfo (room: Room) : RoomInfo =
+        { RoomInfo.Name = room.Name |> asDisplayable
+          RoomInfo.Description = room.Description |> asDisplayable
+          RoomInfo.Exits = Array.empty
+          RoomInfo.Items = Array.empty
+          RoomInfo.Characters = Array.empty }
+
+    let room = model.World |> World.currentRoom |> constructRoomInfo
+    let player = { PlayerInfo.Inventory = Array.empty }
+    { GameStateInfo.Player = player; GameStateInfo.Room = room }
+    
+
+let run (fileIo: IFileIO) (model: Model) : Engine =
     let cts = new CancellationTokenSource()
     let terminate = fun () -> cts.Cancel()
     let runAction = runAction fileIo terminate
+    let engineMessageEvent = Event<EngineMessageInfo>()
+    let sendEngineMessage (message: EngineMessage) = message |> EngineMessageInfo.FromEngineMessage |> engineMessageEvent.Trigger
 
     let agent = MailboxProcessor<Event>.Start(fun inbox ->
         let rec loop (currentModel: Model) (pendingTransition: ModeTransition option) = async {
@@ -232,9 +270,13 @@ let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (de
                 | Some event ->
                     let result = update currentModel event
                     
-                    do debugOutput.RenderState result event
+                    sendEngineMessage (EngineMessage.UpdatedGameState (constructGameStateInfo model))
                     
-                    do result.Render |> render renderer model.TextResources model.Language
+                    do sendEngineMessage (EngineMessage.DebugOutputResult (result, event))
+                    
+                    match result.Render |> render model.TextResources model.Language with
+                    | Some renderable -> renderable |> sendEngineMessage
+                    | _ -> ()
 
                     do
                        // Since the SaveGame action requires the current `model` it can only be truly constructed in
@@ -255,7 +297,9 @@ let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (de
                         | otherTransition, None ->
                             return! loop result.Model (Some otherTransition)
                         | otherTransition, Some pending ->
-                            do debugOutput.RenderSystemMessage $"Received transition to %A{otherTransition} while having pending transition to %A{pending}, ignoring new transition and keep pending transition"
+                            do
+                                (EngineMessage.DebugOutputMessage $"Received transition to %A{otherTransition} while having pending transition to %A{pending}, ignoring new transition and keep pending transition")
+                                |> sendEngineMessage
                             return! loop result.Model pendingTransition
                 | None ->
                     match pendingTransition with
@@ -268,7 +312,10 @@ let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (de
                             |> runAction
                             |> Option.iter inbox.Post
                         
-                        do renderAction |> render renderer model.TextResources model.Language
+                        match renderAction |> render model.TextResources model.Language with
+                        | Some renderable -> renderable |> sendEngineMessage
+                        | None -> ()
+
                         return! loop newModel None
                     | None ->
                         return! loop currentModel None
@@ -283,6 +330,21 @@ let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (de
         loop model None
     )
     
+    let inputPort =
+        { new IEngineInput with
+            member _.Send command =
+                if not cts.IsCancellationRequested then
+                    match command with
+                    | EngineCommand.UserInput input -> input |> Event.RawInput |> agent.Post }
+    
+    
+    {
+        Input = inputPort
+        Output = engineMessageEvent.Publish
+        CancellationTokenSource = cts
+    }
+    
+    (*
     let startInputSubscription () =
         async {
             (* The basic parser should not in any way know of the game or system messages.
@@ -292,6 +354,7 @@ let run (externalInput: IAsyncInput) (renderer: IRenderer) (fileIo: IFileIO) (de
                 let! input = externalInput.ReadInput(cts.Token)
                 do input.Trim() |> RawInput |> agent.Post
         } |> Async.Start
-    
     startInputSubscription ()
-    do cts.Token.WaitHandle.WaitOne() |> ignore
+    *)
+    
+    //do cts.Token.WaitHandle.WaitOne() |> ignore

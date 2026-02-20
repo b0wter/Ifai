@@ -90,19 +90,18 @@ let handleEnteringEvent (world: World) (state: TransitioningState) : StepResult<
     | Full ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
         |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling entering events is not yet supported"; RenderAction.Text room.Name; RenderAction.Text room.Description])
+        |> StepResult.withTransition ModeTransition.Finished
     | EventOnly ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
         |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling entering events is not yet supported"])
+        |> StepResult.withTransition ModeTransition.Finished
     | SkipEvent ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
         |> StepResult.withRender (RenderAction.Batch [RenderAction.Text room.Name; RenderAction.Text room.Description])
+        |> StepResult.withTransition ModeTransition.Finished
     | SkipAll ->
         StepResult.init world state
-
-
-    StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
-    |> StepResult.withRender (RenderAction.Batch [RenderAction.Text room.Name; RenderAction.Text room.Description])
-    |> StepResult.withTransition ModeTransition.Finished
+        |> StepResult.withTransition ModeTransition.Finished
 
 
 let update (input: StepInput<TransitioningState, TransitioningEvent>) : StepResult<TransitioningState, TransitioningEvent> =
