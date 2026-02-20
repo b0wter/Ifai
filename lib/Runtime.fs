@@ -270,7 +270,7 @@ let run (fileIo: IFileIO) (model: Model) : Engine =
                 | Some event ->
                     let result = update currentModel event
                     
-                    sendEngineMessage (EngineMessage.UpdatedGameState (constructGameStateInfo model))
+                    sendEngineMessage (EngineMessage.UpdatedGameState (constructGameStateInfo result.Model))
                     
                     do sendEngineMessage (EngineMessage.DebugOutputResult (result, event))
                     

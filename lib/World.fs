@@ -3,7 +3,7 @@ namespace Ifai.Lib
 type World = {
     Turn: uint
     Rooms: Map<RoomId, Room>
-    RoomModifiers: Map<RoomId, Set<RoomModifiers>>
+    RoomModifiers: Map<RoomId, Set<RoomModifier>>
     CurrentRoomId: RoomId
     Items: Map<ItemId, Item>
 }

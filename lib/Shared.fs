@@ -24,9 +24,27 @@ type AttributeOperation =
     | Remove
 
 
-type FireState =
-    | NotOnFire
-    | OnFire of intensity:uint
+/// <summary>
+/// Describes the burning state of a room.
+/// </summary>
+/// <remarks>
+/// Does not contain a case for not being burning, as this is the default state.
+/// </remarks>
+type BurningModifier =
+    | Burning of intensity:uint
+    | BurntOut
+
+
+/// <summary>
+/// Describes the flooding state of a tile.
+/// </summary>
+/// <remarks>
+/// Does not contain a case for not being flooded, as this is the default state.
+/// </remarks>
+type FloodingModifier =
+    | Rising of rate:uint
+    | Lowering of rate:uint
+    | Flooded
 
 
 type PressureState =
