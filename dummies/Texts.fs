@@ -1,4 +1,4 @@
-﻿module Ifai.Resources.Texts
+﻿module Ifai.Dummies.Texts
 
 open Ifai.Lib
 

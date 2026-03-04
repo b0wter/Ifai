@@ -1,7 +1,6 @@
-module Ifai.Resources.Rooms
+module Ifai.Dummies.Rooms
 
 open Ifai.Lib
-open Ifai.Resources.Texts
 
 let dummyRoomIds = [|
     "dummy.1" |> RoomId.create
@@ -15,29 +14,28 @@ let private createConnections<'a> (connections: Connection<'a> list) : Map<Exit,
     |> Map.ofList
 
 
-let dummyRooms = [
+let dummyRooms language = [
     {
         Id = dummyRoomIds[0]
         Environment = RoomEnvironment.``default``
         OnEnter = None
         OnLeaving = None
-        Name = textsMap |> Map.find (TextKey.create "dummy1_name")
-        Description = textsMap |> Map.find (TextKey.create "dummy1_description")
+        Name = (Texts.textsMap |> Map.find (TextKey.create "dummy1_name")) |> (Text.localize Texts.textResources language)
+        Description = (Texts.textsMap |> Map.find (TextKey.create "dummy1_description") |> (Text.localize Texts.textResources language))
         Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[1]); Connection.create (Exit.Dir Direction.West) (dummyRoomIds[2])] |> createConnections
     }
     { Id = dummyRoomIds[1]
       Environment = RoomEnvironment.``default``
       OnEnter = None
       OnLeaving = None
-      Name = textsMap |> Map.find (TextKey.create "dummy2_name")
-      Description = textsMap |> Map.find (TextKey.create "dummy2_description")
+      Name = (Texts.textsMap |> Map.find (TextKey.create "dummy2_name") |> (Text.localize Texts.textResources language))
+      Description = (Texts.textsMap |> Map.find (TextKey.create "dummy2_description") |> (Text.localize Texts.textResources language))
       Connections = [Connection.create (Exit.Dir Direction.West) (dummyRoomIds[0])] |> createConnections }
     { Id = dummyRoomIds[2]
       Environment = RoomEnvironment.``default``
       OnEnter = None
       OnLeaving = None
-      Name = textsMap |> Map.find (TextKey.create "dummy3_name")
-      Description = textsMap |> Map.find (TextKey.create "dummy3_description")
+      Name = (Texts.textsMap |> Map.find (TextKey.create "dummy3_name")) |> (Text.localize Texts.textResources language)
+      Description = (Texts.textsMap |> Map.find (TextKey.create "dummy3_description")) |> (Text.localize Texts.textResources language)
       Connections = [Connection.create (Exit.Dir Direction.East) (dummyRoomIds[0])] |> createConnections }
 ]
-
