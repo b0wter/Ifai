@@ -19,7 +19,9 @@ let ``Transforming a non-parameterized text resource into a displayable text sho
             [ ("key" |> TextKey.create, "sample text") ] |> Map.ofList
         )] |> Map.ofList
 
-    let asDisplayable = Text.toDisplayable resources language None text
+    let asDisplayable =
+        Text.localize resources language text
+        |> Text.mergeParameters None
 
     asDisplayable |> should be (ofCase <@ Result<Text.DisplayableText, Text.DisplayableText>.Ok @>)
     (asDisplayable |> Ifai.Library.Tests.Helpers.Result.forceOk).Text |> should equal "sample text"
@@ -37,11 +39,12 @@ let ``Transforming a parameterized text resource into a displayable text using v
         )] |> Map.ofList
 
     let asDisplayable =
-        Text.toDisplayable
+        Text.localize
             resources
             language
-            ([("{count}" |> ParameterKey.create, 4 |> Parameter.Int)] |> Map.ofList |> Some)
             text
+        |> Text.mergeParameters
+            ([("{count}" |> ParameterKey.create, 4 |> Parameter.Int)] |> Map.ofList |> Some)
 
     asDisplayable |> should be (ofCase <@ Result<Text.DisplayableText, Text.DisplayableText>.Ok @>)
     (asDisplayable |> Ifai.Library.Tests.Helpers.Result.forceOk).Text |> should equal "4 apples"

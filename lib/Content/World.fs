@@ -2,23 +2,54 @@ namespace Ifai.Lib
 
 type World = {
     Turn: uint
+    CurrentRoomId: RoomId
+    
     Rooms: Map<RoomId, Room>
     RoomModifiers: Map<RoomId, Set<RoomModifier>>
-    CurrentRoomId: RoomId
+    
     Items: Map<ItemId, Item>
+    ItemModifiers: Map<ItemId, Set<ItemModifier>>
+    ItemLocations: Map<ItemId, ItemLocation>
+    
+    Characters: Map<CharacterId, Character>
+    CharacterModifiers: Map<CharacterId, Set<CharacterModifiers>>
+    CharacterLocations: Map<CharacterId, CharacterLocation>
+    
+    // Multiple spells of the same type may be active at the same time that's why we need a special id to find them later
+    ActiveSpells: Map<SpellInstanceId, SpellId> 
 }
 
 module World =
-    let init (rooms: Room list) (initialRoom: RoomId) (items: Item list) =
+    let init (rooms: Room list) (initialRoom: RoomId) (items: Item list) (itemLocations: Map<ItemId, ItemLocation>) =
+        // sets the location of all items that have no location to "nowhere"
+        let locations =
+            items
+            |> List.map _.Id
+            |> List.except (itemLocations.Keys |> List.ofSeq)
+            |> List.fold (fun acc next -> acc |> Map.add next ItemLocation.Nowhere) itemLocations
+            
         let roomMap =
             rooms
             |> List.map (fun r -> r.Id, r)
             |> Map.ofList
+
         let itemMap =
             items
             |> List.map (fun i -> i.Id, i)
             |> Map.ofList
-        { Turn = 0u; Rooms = roomMap; RoomModifiers = Map.empty; CurrentRoomId = initialRoom; Items = itemMap }
+        {
+            Turn = 0u
+            CurrentRoomId = initialRoom
+            Rooms = roomMap
+            RoomModifiers = Map.empty
+            Items = itemMap
+            ItemModifiers = Map.empty
+            ItemLocations = locations
+            Characters = Map.empty
+            CharacterModifiers = Map.empty
+            CharacterLocations = Map.empty
+            ActiveSpells = Map.empty
+        }
 
     
     /// Gets the id of the room that is connected to the current room via the given exit

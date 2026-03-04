@@ -1,11 +1,5 @@
 namespace Ifai.Lib
 
-type RoomId = private RoomId of string
-module RoomId =
-    let create g = g |> RoomId 
-    let value (RoomId r) = r
-
-
 type RoomEvent =
     | Nothing
     | Batch of RoomEvent list
@@ -58,8 +52,8 @@ module RoomEnvironment =
 
 type Room = {
     Id: RoomId
-    Name: Text
-    Description: Text
+    Name: Text.LocalizedText
+    Description: Text.LocalizedText
     Connections: Map<Exit, Connection<RoomId>>
     OnEnter: RoomEvent option
     OnLeaving: RoomEvent option
@@ -81,6 +75,8 @@ module Room =
     
     let name (r: Room) = r.Name
     let description (r: Room) = r.Description
+    let connections r = r.Connections
+    let environment r = r.Environment
     let onEnter r = r.OnEnter
     let onLeaving r = r.OnLeaving
 

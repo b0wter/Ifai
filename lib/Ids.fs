@@ -1,0 +1,26 @@
+namespace Ifai.Lib
+
+type RoomId = private RoomId of string
+module RoomId =
+    let create g = g |> RoomId 
+    let value (RoomId r) = r
+
+type CharacterId = CharacterId of string
+module CharacterId =
+    let create id = CharacterId id
+    let value (CharacterId id) = id
+
+type SpellId = SpellId of string
+module SpellId =
+    let create id = SpellId id
+    let value (SpellId id) = id
+
+type ItemId = ItemId of string
+module ItemId =
+    let create id = id |> ItemId
+    let value (ItemId i) = i
+
+type SpellInstanceId = SpellInstanceId of string
+module SpellInstanceId =
+    let create id = id |> SpellInstanceId
+    let value (SpellInstanceId i) = i

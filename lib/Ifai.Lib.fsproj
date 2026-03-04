@@ -7,14 +7,20 @@
 
   <ItemGroup>
     <Compile Include="Shared.fs" />
-    <Compile Include="LightLevel.fs" />
+    <Compile Include="Ids.fs" />
     <Compile Include="Text.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Connection.fs" />
-    <Compile Include="Room.fs" />
-    <Compile Include="Item.fs" />
-    <Compile Include="World.fs" />
     <Compile Include="BuiltIns.fs" />
+    <Compile Include="Content\LightLevel.fs" />
+    <Compile Include="Content\Room.fs" />
+    <Compile Include="Content\Region.fs" />
+    <Compile Include="Content\Character.fs" />
+    <Compile Include="Content\Spell.fs" />
+    <Compile Include="Content\Item.fs" />
+    <Compile Include="Content\Interaction.fs" />
+    <Compile Include="Content\Scene.fs" />
+    <Compile Include="Content\World.fs" />
     <Compile Include="RuntimeAction.fs" />
     <Compile Include="ActivationResult.fs" />
     <Compile Include="StepResult.fs" />
