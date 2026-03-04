@@ -4,6 +4,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Connections/">
+    <Project Path="connections/signalr_client/Ifai.SignalR.Client.csproj" />
+    <Project Path="connections/signalr_host/Ifai.SignalR.Host.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/ai/Ifai.Ai.Tests.csproj" />
     <Project Path="tests/integration/Ifai.Integration.Tests.fsproj" />
