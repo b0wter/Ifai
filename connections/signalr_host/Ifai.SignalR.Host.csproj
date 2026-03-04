@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.SystemTextJson" Version="1.4.36" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\dummies\Ifai.Dummies.fsproj" />
+    <ProjectReference Include="..\..\lib\Ifai.Lib.fsproj" />
+    <ProjectReference Include="..\..\content_parser\Ifai.ContentParser.fsproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Ifai.SignalR.Host</RootNamespace>
+  </PropertyGroup>
+
+</Project>
