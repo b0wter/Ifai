@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Avalonia;
@@ -17,6 +18,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _inputText = string.Empty;
     [ObservableProperty] private string _roomDescription = string.Empty;
     [ObservableProperty] private string _roomName = string.Empty;
+    [ObservableProperty] private List<string> _items = [];
 
     public System.Collections.ObjectModel.ObservableCollection<NewHistoryItemMessage> History { get; } = new();
     public System.Collections.ObjectModel.ObservableCollection<string> DebugMessages { get; } = new();
@@ -33,11 +35,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private void Start()
     {
         var model =
-            Resources.World.init(
-                Resources.Rooms.dummyRooms,
-                Resources.Rooms.dummyRoomIds.First(),
+            Dummies.World.init(
+                [],
+                Dummies.Rooms.dummyRoomIds.First(),
                 LanguageModule.create("en"),
-                Resources.Texts.textResources)!;
+                Dummies.Texts.textResources)!;
 
         var fileIo = new FileIo();
 
@@ -105,6 +107,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         RoomDescription = gameState.Room.Description.Text;
         RoomName = gameState.Room.Name.Text;
+        Items = gameState.Player.Inventory.Select(i => i.Name.Text).ToList();
     }
 
     private void HandleClearScreen()

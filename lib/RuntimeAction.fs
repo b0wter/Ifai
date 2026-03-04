@@ -1,5 +1,7 @@
 namespace Ifai.Lib
 
+open Ifai.Lib.Text
+
 type Parsing =
     | ParseExploringInput of Language * string
     | ParseSavingInput of Language * string
@@ -45,6 +47,7 @@ module RuntimeAction =
 type RenderAction =
     | Nothing
     | Clear
+    | LocalizedText of LocalizedText
     | Text of Text
     | Fallback of string
     | Batch of RenderAction list

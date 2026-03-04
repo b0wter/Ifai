@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <Compile Include="Helpers.fs" />
+    <Compile Include="IfaParserTests.fs" />
     <Compile Include="ParserTests.fs" />
     <Compile Include="TextTests.fs" />
   </ItemGroup>
@@ -20,7 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\dummies\Ifai.Dummies.fsproj" />
     <ProjectReference Include="..\..\lib\Ifai.Lib.fsproj" />
+    <ProjectReference Include="..\..\content_parser\Ifai.ContentParser.fsproj" />
   </ItemGroup>
 
 </Project>

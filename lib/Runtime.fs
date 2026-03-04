@@ -148,7 +148,7 @@ let runAction
     | SaveGame _ -> failwith "SaveGame must be resolved by the runtime and cannot be run as an action"
     
     
-let rec render (textResources: TextResources) (language: Language) (action: RenderAction) : EngineMessage option =
+let rec render (resources: TextResources) (language: Language) (action: RenderAction) : EngineMessage option =
     // TODO: since there is no scripting or DSL for the game logic there is no sense in having parameterized texts
     let clear = EngineMessage.ClearScreen
 
@@ -163,18 +163,23 @@ let rec render (textResources: TextResources) (language: Language) (action: Rend
     let render (text: Text.DisplayableText) =
             EngineMessage.NewHistoryItem (text.Text, text.NarrativeStyle |> mapStyle)
 
-    let formatter (text: Text) =
+    let localizedTextFormatter (text: Text.LocalizedText) =
         text
-        |> Text.toDisplayable textResources language None
+        |> Text.mergeParameters None
+        |> function Ok t -> t | Error t -> t
+        
+    let textFormatter (text: Text) =
+        text
+        |> Text.localize resources language
+        |> Text.mergeParameters None
         |> function Ok t -> t | Error t -> t
 
-    let display = formatter >> render
-    
     let rec asFunction (renderable: RenderAction) : EngineMessage list =
         match renderable with
         | RenderAction.Nothing -> []
         | RenderAction.Clear -> [clear]
-        | RenderAction.Text text -> [text |> display]
+        | RenderAction.Text text -> [text |> textFormatter |> render]
+        | RenderAction.LocalizedText text -> [text |> localizedTextFormatter |> render]
         | RenderAction.Fallback s -> 
             let asDisplayable = { Text.DisplayableText.Text = s; Text.DisplayableText.NarrativeStyle = NarrativeStyle.Regular }
             [ asDisplayable |> render ]
@@ -224,8 +229,13 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
 
 
 let constructGameStateInfo (model: Model) : GameStateInfo =
+    let asDisplayableL (t: Text.LocalizedText) =
+        match t |> Text.mergeParameters None with
+        | Ok d -> d
+        | Error e -> e
+    
     let asDisplayable t =
-        match Text.toDisplayable model.TextResources model.Language None t with
+        match Text.localize model.TextResources model.Language t |> Text.mergeParameters None with
         | Ok d -> d
         | Error e -> e
         
@@ -237,8 +247,8 @@ let constructGameStateInfo (model: Model) : GameStateInfo =
           ConnectionInfo.Name = name }
 
     let constructRoomInfo (room: Room) : RoomInfo =
-        { RoomInfo.Name = room.Name |> asDisplayable
-          RoomInfo.Description = room.Description |> asDisplayable
+        { RoomInfo.Name = room.Name |> asDisplayableL
+          RoomInfo.Description = room.Description |> asDisplayableL
           RoomInfo.Exits = Array.empty
           RoomInfo.Items = Array.empty
           RoomInfo.Characters = Array.empty }
@@ -343,18 +353,3 @@ let run (fileIo: IFileIO) (model: Model) : Engine =
         Output = engineMessageEvent.Publish
         CancellationTokenSource = cts
     }
-    
-    (*
-    let startInputSubscription () =
-        async {
-            (* The basic parser should not in any way know of the game or system messages.
-               it should only prepare the raw input so that the game/system logic does not need to care about
-               trimming/splitting the input *)
-            while not cts.Token.IsCancellationRequested do
-                let! input = externalInput.ReadInput(cts.Token)
-                do input.Trim() |> RawInput |> agent.Post
-        } |> Async.Start
-    startInputSubscription ()
-    *)
-    
-    //do cts.Token.WaitHandle.WaitOne() |> ignore

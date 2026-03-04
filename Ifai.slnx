@@ -15,6 +15,7 @@
   </Folder>
   <Project Path="ai/Ifai.Ai.csproj" />
   <Project Path="cli/Ifa.Cli.fsproj" />
+  <Project Path="content_parser\Ifai.ContentParser.fsproj" />
   <Project Path="dummies/Ifai.Dummies.fsproj" />
   <Project Path="gui/Ifai.Gui.csproj" />
   <Project Path="lib/Ifai.Lib.fsproj" />

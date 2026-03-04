@@ -115,8 +115,8 @@ type ExploringIntent =
     | Move of Exit
     | Wait
     | LookAround
-    | Examine of string
-    | Take of string
+    | Examine of ItemId
+    | Take of ItemId
     | TakeAll
     | Ignore of string
     | Directions
@@ -157,8 +157,8 @@ let matchInputWithIntent (input: ExploringBuiltIn) : ExploringIntent =
     | Left -> Move (Exit.Dir Direction.Left)
     | Right -> Move (Exit.Dir Direction.Right)
     | ExploringBuiltIn.LookAround -> LookAround
-    | ExploringBuiltIn.Take x -> Take x
-    | ExploringBuiltIn.Examine x -> Examine x
+    | ExploringBuiltIn.Take x -> failwith "matching taking intent not yet implemented" //Take x
+    | ExploringBuiltIn.Examine x -> failwith "matching examining intent not yet implemented" //Examine x
     | ExploringBuiltIn.TakeAll -> TakeAll
     | ExploringBuiltIn.Directions -> Directions
 
@@ -171,6 +171,39 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
         builtIns |> List.sortBy exploringBuiltInPriority |> List.tryHead |> Option.map matchInputWithIntent |> Option.defaultValue Unknown
     | Input.Sentence _ -> ExploringIntent.Ignore "sentence input is not yet supported"
 
+
+/// <summary>
+/// Searches the room for an item that matches the player input. Checks the name as well as all synonyms.
+/// Uses the current language for the matching.<br/>
+/// If no item is found in the room, continues by searching the inventory for a matching item
+/// </summary>
+let rec tryFindItemByPlayerInput (input: string) (world: World) : Item list =
+    let rec isItemWithPlayerOrInRoom (itemId: ItemId) : bool =
+        match world.ItemLocations |> Map.tryFind itemId with
+        | Some (ItemLocation.InOtherItem otherId) -> otherId |> isItemWithPlayerOrInRoom
+        | Some  ItemLocation.Nowhere -> false
+        | Some  ItemLocation.Player -> true
+        | Some (ItemLocation.Room roomId) when roomId = world.CurrentRoomId -> true
+        | Some (ItemLocation.Room _) -> false
+        | None -> false
+
+    (*
+    let doesNameOfSynonymMatch (toLookFor: string) (item: Item) : bool =
+        (item.Name :: item.Synonyms)
+        |> List.exists (fun t -> Text.toDisplayableWithoutParameters )
+    *)
+        
+    let availableItems =
+        world.Items
+        |> Map.keys
+        |> Seq.filter isItemWithPlayerOrInRoom
+        |> Seq.map (fun x -> world.Items |> Map.find x)
+
+    (*
+    availableItems
+    |> Seq.filter (fun item -> )
+    *)
+    failwith "rekt"
 
 let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent) : StepResult<ExploringState, ExploringEvent> =
     match intent with
@@ -194,8 +227,9 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
             StepResult.init world state
             |> StepResult.withRender (RenderAction.Text (Text.create (TextKey.create "no_exit_found")))
     | LookAround ->
+        let room = world |> World.currentRoom
         StepResult.init world state
-        |> StepResult.withRender (RenderAction.Fallback "Looking around in the exploring mode has not been implemented yet")
+        |> StepResult.withRender (RenderAction.Batch [RenderAction.LocalizedText room.Name; RenderAction.LocalizedText room.Description])
     | Examine item ->
         StepResult.init world state
         |> StepResult.withRender (RenderAction.Fallback "Examining in the exploring mode has not been implemented yet")

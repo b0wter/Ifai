@@ -76,7 +76,7 @@ let createInput () =
     { new IAsyncInput with
         member this.ReadInput ct = AsyncConsoleReader.AsyncConsole.ReadLineAsync(ct).AsTask() |> Async.AwaitTask }
 
-let model = Ifai.Resources.World.init Ifai.Resources.Rooms.dummyRooms Ifai.Resources.Rooms.dummyRoomIds[0] (Language.create "en") Ifai.Resources.Texts.textResources
+let model = Ifai.Dummies.World.init [] Ifai.Dummies.Rooms.dummyRoomIds[0] (Language.create "en") Ifai.Dummies.Texts.textResources
 
 let engine = Runtime.run (createFileIo()) model
 
@@ -84,7 +84,7 @@ let rec handleEngineMessage (message: EngineMessage) =
     do Console.ResetColor()
     match message with
     | UpdatedGameState gameStateInfo -> printfn "%A" gameStateInfo
-    | NewHistoryItem(s, narrativeStyleInfo) -> printfn "%s" s
+    | NewHistoryItem(s, _) -> printfn "%s" s
     | ClearScreen -> Console.Clear()
     | DebugOutputResult(globalResult, event) -> Console.ForegroundColor <- ConsoleColor.DarkGray; printDebug globalResult event
     | DebugOutputMessage s -> printfn "%s" s
@@ -93,7 +93,7 @@ let rec handleEngineMessage (message: EngineMessage) =
 
 do engine.Output.Subscribe(fun x ->
     handleEngineMessage x.OriginalMessage
-    )
+    ) |> ignore
 
 let externalInput = createInput()
 

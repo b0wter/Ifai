@@ -121,6 +121,15 @@ module Text =
     let create resourceKey =
         { ResourceKey = resourceKey; NarrativeStyle = None; Parameters = None; ParameterFormatting = None }
         
+    /// <summary>
+    /// This text has been localized, but it might still contain parameter placeholders.
+    /// </summary>
+    type LocalizedText = {
+        Text: string
+        NarrativeStyle: NarrativeStyle
+        Parameters: Map<ParameterKey, ParameterType> option
+        ParameterFormatting: Map<ParameterKey, Parameter -> string> option
+    }
 
     /// <summary>
     /// This text has been localized and all parameters have been replaced.
@@ -155,11 +164,23 @@ module Text =
     type TextResources = Map<Language, Map<TextKey, string>>
     
     
-    let resolve (resources: TextResources) (language: Language) (text: Text) : string =
+    /// <summary>
+    /// Turns a text resource into a localized text that may still contain parameter placeholders.
+    /// </summary>
+    /// <remarks>
+    /// This is mainly used to preprocess the text once the game is started so that properly localized texts
+    /// can be used by the parser
+    /// </remarks>
+    let localize (resources: TextResources) (language: Language) (text: Text) : LocalizedText =
         resources
         |> Map.tryFind language
         |> Option.bind (Map.tryFind text.ResourceKey)
-        |> Option.defaultValue $"<text key '%s{text.ResourceKey |> TextKey.value}' missing for language '%s{language |> Language.value}'>"
+        |> Option.bind (fun string -> Some { Text = string; NarrativeStyle = text.NarrativeStyle |> Option.defaultValue NarrativeStyle.Regular; Parameters = text.Parameters; ParameterFormatting = text.ParameterFormatting })
+        |> Option.defaultValue
+               { Text = $"<text key '%s{text.ResourceKey |> TextKey.value}' missing for language '%s{language |> Language.value}'>"
+                 NarrativeStyle = NarrativeStyle.System
+                 Parameters = None
+                 ParameterFormatting = None }
         
     
     /// <summary>
@@ -193,27 +214,23 @@ module Text =
     /// Sets all parameters that can be set using the given inputs. If you want to check for missing/mismatching parameters
     /// use the <see cref="validate"/> function
     /// </summary>
-    /// <param name="parameters"></param>
-    /// <param name="formatters">Map of formatting options for </param>
-    /// <param name="resolvedString"></param>
-    let withParameters (parameters: Map<ParameterKey, Parameter>) (formatters: Map<ParameterKey, Parameter -> string>) (resolvedString: string) =
+    let private withParameters (parameters: Map<ParameterKey, Parameter>) (formatters: Map<ParameterKey, Parameter -> string>) (localizedText: LocalizedText) =
         let getMapper (key: ParameterKey) =
             formatters |> Map.tryFind key |> Option.defaultValue Parameters.stringify
         parameters
-        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace(key |> ParameterKey.value, param |> (key |> getMapper))) resolvedString
+        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace(key |> ParameterKey.value, param |> (key |> getMapper))) localizedText.Text
             
             
-    let toDisplayable resources language parameters text =
+    let mergeParameters parameters (text: LocalizedText) : Result<DisplayableText, DisplayableText> =
         let parameters = parameters |> Option.defaultValue Map.empty
         let formatting = text.ParameterFormatting |> Option.defaultValue Map.empty
         let parameterizedString =
             text
-            |> resolve resources language
             |> withParameters parameters formatting
             
         match parameters |> containsAll (text.Parameters |> Option.defaultValue Map.empty) with
         | ValidateSuccess ->
-            Ok { Text = parameterizedString; NarrativeStyle = text.NarrativeStyle |> Option.defaultValue NarrativeStyle.Regular } 
+            Ok { Text = parameterizedString; NarrativeStyle = text.NarrativeStyle } 
         | Failure validateParametersFailure ->
             let mergedMissing =
                 if validateParametersFailure.Missing.IsEmpty then String.Empty

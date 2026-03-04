@@ -78,7 +78,7 @@ let handleLeavingEvent (world: World) (state: TransitioningState) : StepResult<T
     | LeavingRoomMode.Full ->
         let room = world |> World.currentRoom
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Entering }
-        |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling leaving events is not yet supported"; RenderAction.Fallback "[system] You are leaving: "; RenderAction.Text room.Name])
+        |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling leaving events is not yet supported"; RenderAction.Fallback "[system] You are leaving: "; RenderAction.LocalizedText room.Name])
         |> StepResult.withRuntime (RuntimeAction.OfEvent AdvanceTransition)
 
 
@@ -89,7 +89,7 @@ let handleEnteringEvent (world: World) (state: TransitioningState) : StepResult<
     match state.EnteringMode with
     | Full ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
-        |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling entering events is not yet supported"; RenderAction.Text room.Name; RenderAction.Text room.Description])
+        |> StepResult.withRender (RenderAction.Batch [RenderAction.Fallback "[system] Handling entering events is not yet supported"; RenderAction.LocalizedText room.Name; RenderAction.LocalizedText room.Description])
         |> StepResult.withTransition ModeTransition.Finished
     | EventOnly ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
@@ -97,7 +97,7 @@ let handleEnteringEvent (world: World) (state: TransitioningState) : StepResult<
         |> StepResult.withTransition ModeTransition.Finished
     | SkipEvent ->
         StepResult.init world { state with CurrentPhase = TransitioningPhase.Finished }
-        |> StepResult.withRender (RenderAction.Batch [RenderAction.Text room.Name; RenderAction.Text room.Description])
+        |> StepResult.withRender (RenderAction.Batch [RenderAction.LocalizedText room.Name; RenderAction.LocalizedText room.Description])
         |> StepResult.withTransition ModeTransition.Finished
     | SkipAll ->
         StepResult.init world state
