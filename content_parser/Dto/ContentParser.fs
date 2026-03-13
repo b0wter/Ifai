@@ -24,8 +24,19 @@ module ContentParser =
 
     let getIndentation (s: string) : int =
         s.Length - s.TrimStart().Length
+        
+    type ParsingContent =
+        | KeyValue of key:string * value:string
 
-    let parseAction (source: string seq) : Result<ActionDto list, string> =
+    type ParsingFoobar = {
+        Indentation: uint
+        
+    }
+        
+(*
+    let parseActions (source: string seq) : Result<InteractionDto list, string> =
+        let source =
+            source |> Seq.skipWhile String.IsNullOrWhiteSpace
         let emptyAction =
             { Synonyms = []
               SubActions = [] } 
@@ -35,23 +46,35 @@ module ContentParser =
               Say = None
               Set = [] }
 
-        let mapSubAction (inConstruction: SubActionInConstructionDto) : Result<SubActionDto, string> =
+        let mapSubInteraction (inConstruction: SubInteractionInConstructionDto) : Result<SubInteractionDto, string> =
             match inConstruction.If with 
             | None -> Error "Cannot construct SubActionDto without `If` part"
             | Some ``if`` ->
                 {
-                    SubActionDto.If = ``if``
-                    SubActionDto.Say = inConstruction.Say
-                    SubActionDto.Set = inConstruction.Set
+                    SubInteractionDto.If = ``if``
+                    SubInteractionDto.Say = inConstruction.Say
+                    SubInteractionDto.Set = inConstruction.Set
                 } |> Ok
      
-        let rec step (initialIndentation: int) (remaining: string seq) (current: ActionDto) (currentSub: SubActionInConstructionDto) (acc: ActionDto list) =
+        let rec step (initialIndentation: int) (remaining: string seq) (current: InteractionDto) (currentSub:
+                SubInteractionInConstructionDto) (acc:
+                InteractionDto list) =
             match remaining |> Seq.tryHead with 
             | None ->
                 current :: acc
             | Some head when head |> getIndentation <= initialIndentation ->
                 current :: acc 
             | Some head ->
+                let trimmed = head.TrimStart()
+                if trimmed.StartsWith("-") then
+                    // start a new sub-action
+                    let updatedAction = { current with SubActions = (currentSub |> mapSubInteraction) :: current.SubActions }
+                    
+                    
+                    step initialIndentation (remaining |> Seq.tail) updatedAction emptySu
+                else
+                    // continue previous sub-action
+            
                 //let isNewSubAction 
                 failwith $"found %A{head}" 
                     
@@ -65,3 +88,4 @@ module ContentParser =
             Error "The given source block does not start with the required 'actions:' line"
 
     parseAction content
+*)

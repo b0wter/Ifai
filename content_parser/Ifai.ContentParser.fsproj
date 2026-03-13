@@ -6,19 +6,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="Data\room_stone_chamber.yaml" />
-        <Content Include="Data\item_golden_idol.yaml" />
-        <Content Include="Data\room_cave_entrance.yaml" />
-        <Content Include="Data\room_cave_tunnel_1.yaml" />
-        <Content Include="Data\character_baker.ifl" />
-        <Content Include="Data\cave_underground_lake.ifa" />
+        <Compile Include="IndentationParser.fs" />
+        <Compile Include="IndentationTokens.fs" />
+        <Compile Include="IndentationMapper.fs" />
+        <Compile Include="Validation.fs" />
         <Compile Include="Dto\Dto.fs" />
+        <Compile Include="Dto\Pto.fs" />
         <Compile Include="Dto\IfaParser.fs" />
         <Compile Include="Dto\ContentParser.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="DynamicExpresso.Core" Version="2.19.3" />
+      <PackageReference Include="FParsec" Version="2.0.0-beta2" />
+      <PackageReference Include="FsToolkit.ErrorHandling" Version="5.2.0" />
+      <PackageReference Include="Pidgin" Version="3.5.1" />
       <PackageReference Include="YamlDotNet" Version="15.1.4" />
     </ItemGroup>
 

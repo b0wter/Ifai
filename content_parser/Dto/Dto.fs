@@ -7,7 +7,7 @@ type RoomDto = {
 }
 
 type TargetDto
-    = ItemTarget of Ifai.Lib.ItemId
+    = ItemTarget of Ifai.Lib.ThingId
     | RoomTarget of Ifai.Lib.RoomId
     | CharacterTarget of Ifai.Lib.CharacterId
 
@@ -30,22 +30,22 @@ type ConditionDto
     | Or of ConditionDto * ConditionDto
     | Variable of string
 
-type SubActionDto = {
+type SubInteractionDto = {
     If: ConditionDto
     Say: string option
     Set: SetDto list
 }
 
 /// This record is used to construct a SubActionDto by reading content line after content line
-type SubActionInConstructionDto = {
+type SubInteractionInConstructionDto = {
     If: ConditionDto option
     Say: string option
     Set: SetDto list
 }
 
-type ActionDto = {
+type InteractionDto = {
     Synonyms: string list
-    SubActions: SubActionDto list
+    SubActions: SubInteractionDto list
 }
 
 type ItemDto = {
@@ -54,7 +54,7 @@ type ItemDto = {
     Description: string
     Interactions: Interaction list
     State: Map<string, string>
-    Actions: ActionDto list
+    Actions: InteractionDto list
 }
 
 type DecorationDto = {
@@ -62,7 +62,7 @@ type DecorationDto = {
     Synonyms: string list
     Description: string
     State: Map<string, string>
-    Actions: ActionDto list
+    Actions: InteractionDto list
 }
 
 type Dto

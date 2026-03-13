@@ -1,0 +1,179 @@
+room:
+  id: underground_lake
+  name: "Cave entrance"
+  exits:
+    - north: rooms.cave_tunnel
+    - south: rooms.storage_room
+      via: decorations.underground_lake.door
+    - behind rock, under rock, behind boulder, under boulder: rooms.secret_room
+      via: decorations.underground_lake.giant_rock
+  
+  desc: |
+    You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.
+    {decoration:underground_lake.sign}
+    There is only one way forward. You feel like not being able to go back.
+
+item:
+  synonyms: pebble, stone, small stone
+  desc: |
+    A pebble that nicely fits into your palm. Endless possibilities!
+  interactions:
+    - throw, toss:
+        - target: decorations.underground_lake.lake
+          in: rooms.underground_lake
+          destroy: this # will completely remove the pebble from the game
+          say: "The pebble flies in a wide arc and plops into the lake."
+        - target: items.underground_lake.sign
+          move: this -> rooms.cave_underground_lake # this will make the room owner of the pebble
+          say: "You throw the pebble at the sign. It connects with a metallic sound, then falls onto the ground."
+        - target: any
+          room: any
+          say: "The pebble could still prove useful. Do not waste it just yet."
+
+decoration:
+  synonyms: ground, floor
+  desc: |
+    The ground is littered pebbles but you see a metallic glint in the distance
+
+decoration:
+  synonyms: glint, metallic glint
+  desc: |
+    Hidden among the pebbles lies a metallic key
+
+item:
+  synonyms: key, metallic key
+  desc: |
+    A small iron key. You picked it up at the underground lake. There is nothing special about it. Years of use left their markings on it.
+
+decoration:
+  id: giant_rock
+  synonyms: giant rock, big rock, huge rock, giant boulder, big boulder, huge boulder
+  desc: |
+    A giant rock lies in a corner of the room. You look closer and realize that it is carefully placed to hide a small passage into another room.
+
+decoration:
+  id: wooden_door
+  synonyms: door
+  traits:
+    - door: # internally expands to `lockable`, `openable`, `passage`
+        isLocked: true
+        isOpen: false
+        key: items.iron_key, items.master_key
+  
+  desc: |
+    A wooden door is set into the rock wall.
+  interactions:
+    # Notice how there is no "outcomes" if there is no "requires", this is syntactic sugar
+    - open:
+        outcomes:
+          - if: isLocked
+            say: "The door is locked"
+          - if: !isLocked && !isOpen
+            say: "You open the door"
+            set: isOpen = true
+          - if: isOpen
+            say: "The door is already open"
+    # Unlocking always requires the key that's why we add a global "requires" to all outcomes
+    - unlock:
+        requires:
+          - items.iron_key
+        outcomes:
+          - if: this.isLocked
+            target: decorations.underground_lake.door
+            set: this.isLocked = false
+            say: The door has been unlocked.
+          - if: !target.isLocked
+            target: decorations.underground_lake.door
+            say: The door is already unlocked
+        # The otherwise is a shorthand notation, see example below for the "actual" implementation
+        otherwise:
+          say: You cannot unlock the door without the key
+
+    - lock:
+        requires:
+          - items.iron_key
+        outcomes:
+          - if: this.isLocked
+            say: The door is already locked
+          - if: !target.isLocked
+            set: this.isLocked = true
+            say: You lock the door
+
+
+item:
+  synonyms: torch
+  desc: |
+    An ancient-looking torch
+  modifiers:
+    - isLit: false
+    - lifetime: 123
+      type: float
+    - strength: 100
+      type: uint
+      min: 1
+      max: 100
+  interactions:
+    - light:
+        synonyms: light up, burn
+        requires:
+          - items.matches
+        outcomes:
+          - if: !isLit
+            say: "The torch is lit"
+            set: isLit = true
+          - if: isLit
+            say: "The torch is already lit"
+
+decoration:
+  synonyms: bush, scrub, bramble, foliage, plant, plants
+  desc: |
+    The bushes grow thick and tangled around the rocky entrance of the cave...
+
+decoration:
+  synonyms: lake, water, pond, basin
+  desc: |
+    The lakes lies silently in the middle of the large cavern.
+    The water is perfectly still and dimly reflects the shapes of nearby rocks.
+
+decoration:
+  # Ids for decorations are always prepended with the room id ("underground_lake.sign" in this case). Ids are optional
+  id: sign
+  synonyms: sign, small sign, sign post
+  
+  modifiers:
+    - isDown: false
+    - isBroken: false
+    - text: "The lake has strong underwater currents"
+
+  desc: |
+    {if isBroken}
+      The once mighty sign is now broken and lies helplessly on the ground.
+    {else}
+      A small sign {isDown ? "lies on the ground" : "stands on a wooden post"}.
+      It reads: "{text}"
+    {end}
+
+  interactions:
+    - read:
+        say: "The sign says: [text]"
+    - kick, punch, strike:
+        - if: !isDown
+          say: "You kick the sign and it falls onto the ground."
+          set: isDown = true
+        - if: isDown && !isBroken
+          say: "The sign breaks under your foot."
+          set: isBroken = true
+        - default:
+          say: "The sign is already broken."
+
+    - pick up, lift:
+        - if: isDown && !isBroken
+          say: "You put the sign back up."
+          set: isDown = false
+        - if: isBroken
+          say: "It's broken beyond repair."
+        - else:
+          say: "It's already standing."
+
+    - take:
+        - say: "The sign post is too bulky to carry around."
