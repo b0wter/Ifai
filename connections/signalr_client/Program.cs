@@ -21,7 +21,27 @@ connection.On<string, string>("ReceiveMessage", (user, message) =>
 
 connection.On<string, string>("NewHistoryItem", (text, style) =>
 {
-    Console.WriteLine($"{text} ({style})");
+    var originalColor = Console.ForegroundColor;
+    try
+    {
+        var styleColor = style switch
+        {
+            "System" => ConsoleColor.Red,
+            "Dialogue" => ConsoleColor.Cyan,
+            "Regular" => originalColor,
+            "Emphasized" => ConsoleColor.DarkGreen,
+            "Hint" => ConsoleColor.DarkGray,
+            _ => throw new ArgumentException($"Style {style} is not supported.", nameof(style))
+        };
+
+        // Message in style color
+        Console.ForegroundColor = styleColor;
+        Console.WriteLine(text);
+    }
+    finally
+    {
+        Console.ForegroundColor = originalColor;
+    }
 });
 
 /*
