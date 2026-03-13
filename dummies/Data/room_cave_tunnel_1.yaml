@@ -1,0 +1,56 @@
+# Room: stone_chamber
+name: Cave entrance
+desc: |
+  You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.
+  %s{sign}
+  There is only one way forward. You feel like not being able to go back.
+
+# Decorations
+decoration bush:
+  names: bush, scrub, bramble, foliage, plant, plants
+  desc: |
+    The bushes grow thick and tangled around the rocky entrance of the cave...
+
+# Items
+item sign:
+  names: sign, small sign, sign post
+  desc: |
+    {{ if isBroken }}
+      The once mighty sign is now broken and lies helplessly on the ground.
+    {{ else }}
+      A small sign {{ if isDown }}lies on the ground{{ else }}stands on a small wooden post{{ end }}.
+      It reads: "Proceed at your own risk."
+    {{ end }}
+
+  properties:
+    isDown: false
+    isBroken: false
+    
+    
+  thingies:
+    kicking_down:
+      
+        
+
+  actions: |
+    When player kicks sign:
+      If sign is not down:
+        Say "You kick the sign and it falls onto the ground."
+        Set isDown to true
+      If sign is down and not broken:
+        Say "The sign breaks under your foot."
+        Set isBroken to true
+      Otherwise:
+        Say "The sign is already broken."
+
+    When player picks up sign:
+      If sign is down and not broken:
+        Say "You put the sign back up."
+        Set isDown to false
+      If sign is down and broken:
+        Say "The sign is broken beyond repair, picking it up no longer serves a purpose."
+      Otherwise:
+        Say "There is no need to pick up the sign."
+
+    When player takes sign:
+      Say "The sign post is too bulky to carry around."

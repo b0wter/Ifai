@@ -1,0 +1,21 @@
+npc baker:
+
+  properties:
+    # anything that starts with "rooms" references a RoomId
+    workplace: rooms.market
+    location: rooms.bakery_house
+    wearingWorkClothes: false
+
+  desc:
+    The town baker is a sturdy man with flour-dusted hands.
+
+    If wearingWorkClothes is true:
+      He is wearing his white apron and work clothes.
+    Otherwise:
+      He is dressed in simple brown everyday garments.
+
+  When baker enters workplace:
+    Set wearingWorkClothes to true
+
+  When baker leaves workplace:
+    Set wearingWorkClothes to false

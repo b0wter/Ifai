@@ -1,0 +1,76 @@
+# this also acts as the room id and must be unique
+room: "stone_chamber"
+name: "Cave entrance"
+desc: |
+  You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.
+  %s{sign}
+  There is only one way forward. You feel like not being able to go back.
+
+# Decorations are items that cannot be moved and that can only be examined
+decoration:
+  bush:
+    name:
+      - "bush"
+      - "scrub"
+      - "bramble"
+      - "foliage"
+      - "plant"
+      - "plants"
+    description: |
+      The bushes grow thick and tangled around the rocky entrance of the cave, their dense foliage spilling over the jagged stones like a natural curtain.
+      Vines creep up the rugged walls, intertwining with low-hanging branches and leaves, camouflaging the opening from view.
+
+# Items are items that are actually interactable
+items:
+  sign:
+    name:
+      - "sign"
+      - "small sign"
+      - "sign post"
+    description: |
+      {{ if isBroken }}
+        The once mighty sign is now broken and lies helplessly on the ground. Its text is barely readable anymore
+      {{ else }}
+        A small sign {{ if isDown }}lays on the ground bearing no visible sign of your act of violence{{ else }}stands on a small wooden post{{ end }}. It reads: "Proceed at your own risk.".
+        It's weathered but still very readable. It's text stands in stark contrast to your thoughts.
+      {{ end }}
+
+    properties:
+      - isDown: false
+      - isBroken: false
+
+    actions:
+      - kick:
+          synonyms:
+            - "kick"
+            - "punch"
+            - "boot"
+            - "strike"
+          cases:
+            - requires:
+                - isDown: false
+              response: "You kick the sign and it falls onto the ground."
+              effects:
+                - set: { isDown: true }
+            - requires:
+                - isDown: true
+              response: "The sign lays helplessly on the ground. With a crunch it breaks under your mighty foot."
+              properties:
+
+      - pick_up:
+          synonyms:
+            - "lift"
+            - "raise"
+          cases:
+            - response: "There is no need to pick up the sign, it's firmly rooted in the ground."
+            - requires:
+                - isDown: true
+                - isBroken: false
+              response: "You put the sign back up."
+              effects:
+                - set: { isDown: false }
+
+      - take:
+          - response: "The sign post is too bulky to carry around"
+      
+    
