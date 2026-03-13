@@ -1,4 +1,6 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
+
+open Ifai.Lib
 
 type Actor =
     | Player
@@ -10,14 +12,15 @@ type Target =
     | Player
     | Room of RoomId
     | Character of CharacterId
-    | Item of ItemId
-    | Decoration of ItemId
-    
+    | Item of ThingId
+    | Decoration of ThingId
+    | Self
+
 
 type Instrument =
     | Nothing
-    | Item of ItemId
-    | Decoration of ItemId
+    | Item of ThingId
+    | Decoration of ThingId
     | Character of CharacterId
 
 
@@ -33,7 +36,7 @@ type InteractionContext = {
     /// </example>
     Instrument: Instrument
     Verb: string
-    Target: Target
+    Object: Target
     /// Location context for the interaction
     Room: RoomId
 }

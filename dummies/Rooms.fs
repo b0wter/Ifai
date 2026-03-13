@@ -1,6 +1,7 @@
 module Ifai.Dummies.Rooms
 
 open Ifai.Lib
+open Ifai.Lib.Content
 
 let dummyRoomIds = [|
     "dummy.1" |> RoomId.create

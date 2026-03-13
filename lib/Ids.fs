@@ -15,10 +15,10 @@ module SpellId =
     let create id = SpellId id
     let value (SpellId id) = id
 
-type ItemId = ItemId of string
-module ItemId =
-    let create id = id |> ItemId
-    let value (ItemId i) = i
+type ThingId = ThingId of string
+module ThingId =
+    let create id = id |> ThingId
+    let value (ThingId i) = i
 
 type SpellInstanceId = SpellInstanceId of string
 module SpellInstanceId =

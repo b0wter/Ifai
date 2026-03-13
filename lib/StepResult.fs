@@ -1,6 +1,7 @@
 namespace Ifai.Lib
 
 open Ifai.Lib
+open Ifai.Lib.Content
 
 
 type StepInput<'state, 'event> = {

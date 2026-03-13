@@ -10,11 +10,14 @@ type AttributeValue =
     | Bool of bool
     | Int of value:int * min:int * max:int
     | UInt of value:uint * min:uint * max:uint
-    | Float of float
+    | Float of value:float * min:float * max:float
     | String of string
 
 
 type AttributeId = AttributeId of string
+module AttributeId =
+    let create (s:string) = AttributeId s
+    let value (AttributeId s) = s
 
 
 type AttributeOperation =

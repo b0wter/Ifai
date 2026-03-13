@@ -2,6 +2,7 @@ namespace Ifai.Lib
 
 open Ifai.Lib
 open Ifai.Lib.Modes
+open Ifai.Lib.Content
 
 type GameMode =
     | Exploring of Exploring.ExploringState

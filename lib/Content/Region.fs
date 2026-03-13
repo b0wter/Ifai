@@ -1,5 +1,6 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
 
+open Ifai.Lib
 
 /// A region is a collection of rooms that all share the same set of modifiers.
 type Region = {

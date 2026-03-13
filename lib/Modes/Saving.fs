@@ -1,6 +1,7 @@
 module Ifai.Lib.Modes.Saving
 
 open Ifai.Lib
+open Ifai.Lib.Content
 
 type SavingBuiltIn =
     | Yes

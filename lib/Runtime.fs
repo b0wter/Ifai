@@ -3,6 +3,7 @@ module Ifai.Lib.Runtime
 open System
 open System.Threading
 open Ifai.Lib.Modes
+open Ifai.Lib.Content
 
 
 let (|InExploring|_|) = function
@@ -199,7 +200,7 @@ let rec render (resources: TextResources) (language: Language) (action: RenderAc
 /// </returns>
 let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeAction<Event> * RenderAction =
     match transition with
-    | Nothing ->
+    | ModeTransition.Nothing ->
         model,
         RuntimeAction.Nothing,
         RenderAction.Nothing

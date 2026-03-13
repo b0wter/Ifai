@@ -1,4 +1,4 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
 
 type LightState =
     /// Glare, harder to make out details

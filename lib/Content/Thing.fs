@@ -1,15 +1,17 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
 
+open Ifai.Lib
 
-type ItemLocation =
+type ThingLocation =
     | Room of RoomId
     | Player
-    | InOtherItem of ItemId
+    | InOtherThing of ThingId
+    | HeldBy of CharacterId
     | Nowhere
 
 
 type Interactability =
-    /// This item may serve a purpose, but the player has no way of interacting with it.
+    /// This thing may serve a purpose, but the player has no way of interacting with it.
     /// Can also be used to enrich room descriptions
     | Nothing
     /// Can be examined but not used in any meaningful way
@@ -17,31 +19,32 @@ type Interactability =
     | All
 
 
-type ItemModifier =
+type ThingModifier =
     // There is no dedicated "Fixed" state since that is the default.
-    // Items that are broken at the beginning of the game should also treat the
+    // Things that are broken at the beginning of the game should also treat the
     // 'fixed' state as their default and start with the 'broken' modifier.
-    // This is to prevent a collision; what happens if an item has the 'broken' and 'fixed' modifier?
+    // This is to prevent a collision; what happens if a thing has the 'broken' and 'fixed' modifier?
     | Broken
-    /// Change in temperature, use this to model hot, cold or frozen items
+    /// Change in temperature, use this to model hot, cold or frozen things
     | Temperature of delta:int
     | Wetness of level:int
-    /// Changes the divine alignment of the item, values lesser 0 mean the item us cursed and
+    /// Changes the divine alignment of the thing, values lesser 0 mean the thing is cursed and
     /// values greater 0 mean it is blessed
     | DivineAlignment of delta:int
-    /// Item is not visible because it is hidden behind/under/over/... another item
-    | CoveredBy of ItemId
-    /// Item is cloaked and thus invisible; allows defining an item that causes this effect
-    | Cloaked of cloakingItem:ItemId option
-    /// Item is no longer in this dimension; allows defining an item that causes this effect
-    | OutOfPhase of phasingItem:ItemId option
-    /// Item has deliberately been camouflaged
+    /// Thing is not visible because it is hidden behind/under/over/... another thing
+    | CoveredBy of ThingId
+
+    /// Thing is cloaked and thus invisible; allows defining a thing that causes this effect
+    | Cloaked of cloakingThing: ThingId option
+    /// Thing is no longer in this dimension; allows defining a thing that causes this effect
+    | OutOfPhase of phasingThing: ThingId option
+    /// Thing has deliberately been camouflaged
     | Camouflaged of camouflageQuality:uint
     /// Under the influence of an invisibility spell (or similar)
     | HiddenBySpell of SpellId
-    /// Item has been hidden by some other reason defined via scripting
+    /// Thing has been hidden by some other reason defined via scripting
     | HiddenBy of name:Shared.AttributeId * value:Shared.AttributeValue
-    /// Allows authors to add custom attributes to items
+    /// Allows authors to add custom attributes to thing
     | Custom of name:Shared.AttributeId * value:Shared.AttributeValue
 
 
@@ -51,26 +54,32 @@ type LegalOwner =
     | Nobody
     
 
-type Item = {
-    Id: ItemId
+type Thing = {
+    Id: ThingId
     Name: Text.LocalizedText
     Description: Text.LocalizedText
     Synonyms: Text.LocalizedText list
-    MayContainItems: bool
-    /// Describes if the item can theoretically be moved/taken.
+    /// Describes if the thing can theoretically be moved/taken.
     /// Is not the final truth since the modifiers need to be applied
     IsPortable: bool
     Weight: uint
-    /// Abstract items are never represented in the world, regardless of any visibility rules.
-    /// Use abstract items to implement concepts/items/stuff that has no visible representation
+    /// Abstract things are never represented in the world, regardless of any visibility rules.
+    /// Use abstract things to implement concepts/items/stuff that has no visible representation
     /// in the world like magic, "the Force" or advanced scripting helpers
     IsAbstract: bool
     Interactability: Interactability
     LegalOwner: LegalOwner
+    Traits: Trait list
+    /// A thing that needs discovery will be ignored by certain actions (like Take All)
+    /// until it is discovered by the player. This is useful for hidden items, like keys
+    /// under doormats. The value of this property should never change because this acts as
+    /// the initial value. The fact that this item needs to be discovered not if it was discovered.
+    /// Discovery of things is handled in the PlayerKnowledge
+    NeedsDiscovery: bool
 }
 
 
-module Item =
+module Thing =
     let name i = i.Name
     let desc i = i.Description
     let synonyms i = i.Synonyms
@@ -81,7 +90,7 @@ module Item =
     let legalOwner i = i.LegalOwner
 
     
-    let applyModifier (m: ItemModifier) (modifiers: Set<ItemModifier>) : Set<ItemModifier> =
+    let applyModifier (m: ThingModifier) (modifiers: Set<ThingModifier>) : Set<ThingModifier> =
         match m with
         | Broken
         | HiddenBy _

@@ -1,6 +1,7 @@
 module Ifai.Lib.Modes.Exploring
 
 open Ifai.Lib
+open Ifai.Lib.Content
 open System
 
 (*
@@ -115,8 +116,8 @@ type ExploringIntent =
     | Move of Exit
     | Wait
     | LookAround
-    | Examine of ItemId
-    | Take of ItemId
+    | Examine of ThingId
+    | Take of ThingId
     | TakeAll
     | Ignore of string
     | Directions
@@ -177,14 +178,14 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
 /// Uses the current language for the matching.<br/>
 /// If no item is found in the room, continues by searching the inventory for a matching item
 /// </summary>
-let rec tryFindItemByPlayerInput (input: string) (world: World) : Item list =
-    let rec isItemWithPlayerOrInRoom (itemId: ItemId) : bool =
+let rec tryFindItemByPlayerInput (input: string) (world: World) : Thing list =
+    let rec isItemWithPlayerOrInRoom (itemId: ThingId) : bool =
         match world.ItemLocations |> Map.tryFind itemId with
-        | Some (ItemLocation.InOtherItem otherId) -> otherId |> isItemWithPlayerOrInRoom
-        | Some  ItemLocation.Nowhere -> false
-        | Some  ItemLocation.Player -> true
-        | Some (ItemLocation.Room roomId) when roomId = world.CurrentRoomId -> true
-        | Some (ItemLocation.Room _) -> false
+        | Some (ThingLocation.InOtherThing otherId) -> otherId |> isItemWithPlayerOrInRoom
+        | Some ThingLocation.Nowhere -> false
+        | Some ThingLocation.Player -> true
+        | Some (ThingLocation.Room roomId) when roomId = world.CurrentRoomId -> true
+        | Some (ThingLocation.Room _) -> false
         | None -> false
 
     (*

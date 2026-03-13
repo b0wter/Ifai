@@ -10,6 +10,7 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="tests/ai/Ifai.Ai.Tests.csproj" />
+    <Project Path="tests/content_parser/Ifai.ContentParser.Tests.fsproj" />
     <Project Path="tests/integration/Ifai.Integration.Tests.fsproj" />
     <Project Path="tests/library/Ifai.Library.Tests.fsproj" />
   </Folder>

@@ -1,6 +1,7 @@
 module Ifai.Lib.Modes.Transitioning
 
 open Ifai.Lib
+open Ifai.Lib.Content
 
 (*
     This game mode describes the complete transition from one room to another.
@@ -83,7 +84,12 @@ let handleLeavingEvent (world: World) (state: TransitioningState) : StepResult<T
 
 
 let handleEnteringEvent (world: World) (state: TransitioningState) : StepResult<TransitioningState, TransitioningEvent> =
-    let world = { world with CurrentRoomId = state.ToRoomId }
+    let world =
+        { world with
+            CurrentRoomId = state.ToRoomId
+            PlayerKnowledge = world.PlayerKnowledge |> PlayerKnowledge.markRoomAsDiscovered state.ToRoomId
+        }
+
     let room = world |> World.currentRoom
 
     match state.EnteringMode with

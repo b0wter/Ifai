@@ -2,6 +2,7 @@ module Ifai.Dummies.World
 
 open System.Collections.Generic
 open Ifai.Lib
+open Ifai.Lib.Content
 open Ifai.Lib.Modes
 
 let init (rooms: IEnumerable<Room>) firstRoomId language textResources =

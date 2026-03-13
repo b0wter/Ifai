@@ -1,4 +1,6 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
+
+open Ifai.Lib
 
 type World = {
     Turn: uint
@@ -7,26 +9,28 @@ type World = {
     Rooms: Map<RoomId, Room>
     RoomModifiers: Map<RoomId, Set<RoomModifier>>
     
-    Items: Map<ItemId, Item>
-    ItemModifiers: Map<ItemId, Set<ItemModifier>>
-    ItemLocations: Map<ItemId, ItemLocation>
+    Items: Map<ThingId, Thing>
+    ItemModifiers: Map<ThingId, Set<ThingModifier>>
+    ItemLocations: Map<ThingId, ThingLocation>
     
     Characters: Map<CharacterId, Character>
     CharacterModifiers: Map<CharacterId, Set<CharacterModifiers>>
     CharacterLocations: Map<CharacterId, CharacterLocation>
     
     // Multiple spells of the same type may be active at the same time that's why we need a special id to find them later
-    ActiveSpells: Map<SpellInstanceId, SpellId> 
+    ActiveSpells: Map<SpellInstanceId, SpellId>
+    
+    PlayerKnowledge: PlayerKnowledge
 }
 
 module World =
-    let init (rooms: Room list) (initialRoom: RoomId) (items: Item list) (itemLocations: Map<ItemId, ItemLocation>) =
+    let init (rooms: Room list) (initialRoom: RoomId) (items: Thing list) (itemLocations: Map<ThingId, ThingLocation>) =
         // sets the location of all items that have no location to "nowhere"
         let locations =
             items
             |> List.map _.Id
             |> List.except (itemLocations.Keys |> List.ofSeq)
-            |> List.fold (fun acc next -> acc |> Map.add next ItemLocation.Nowhere) itemLocations
+            |> List.fold (fun acc next -> acc |> Map.add next ThingLocation.Nowhere) itemLocations
             
         let roomMap =
             rooms
@@ -49,6 +53,7 @@ module World =
             CharacterModifiers = Map.empty
             CharacterLocations = Map.empty
             ActiveSpells = Map.empty
+            PlayerKnowledge = PlayerKnowledge.empty
         }
 
     

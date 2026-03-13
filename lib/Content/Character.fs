@@ -1,5 +1,6 @@
-namespace Ifai.Lib
+namespace Ifai.Lib.Content
 
+open Ifai.Lib
 
 type CharacterLocation =
     | Nowhere

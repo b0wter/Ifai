@@ -17,9 +17,11 @@
     <Compile Include="Content\Region.fs" />
     <Compile Include="Content\Character.fs" />
     <Compile Include="Content\Spell.fs" />
-    <Compile Include="Content\Item.fs" />
+    <Compile Include="Content\Trait.fs" />
+    <Compile Include="Content\Thing.fs" />
     <Compile Include="Content\Interaction.fs" />
     <Compile Include="Content\Scene.fs" />
+    <Compile Include="Content\PlayerKnowledge.fs" />
     <Compile Include="Content\World.fs" />
     <Compile Include="RuntimeAction.fs" />
     <Compile Include="ActivationResult.fs" />
