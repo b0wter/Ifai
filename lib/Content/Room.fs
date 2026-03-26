@@ -57,8 +57,8 @@ type Room = {
     Name: Text.LocalizedText
     Description: Text.LocalizedText
     Connections: Map<Exit, Connection<RoomId>>
-    OnEnter: RoomEvent option
-    OnLeaving: RoomEvent option
+    OnEnter: RoomEvent
+    OnLeaving: RoomEvent
     Environment: RoomEnvironment
 }
 
@@ -70,8 +70,8 @@ module Room =
           Description = desc
           Connections = Map.empty
           Environment = RoomEnvironment.``default``
-          OnEnter = None
-          OnLeaving = None }
+          OnEnter = RoomEvent.Nothing
+          OnLeaving = RoomEvent.Nothing }
     
     let rename (r: Room) newName = { r with Name = newName }
     

@@ -181,8 +181,8 @@ module IndentationMapper =
           Name = room.Name |> toLocalizedText
           Description = room.Desc |> toLocalizedText
           Connections = connections
-          OnEnter = None
-          OnLeaving = None
+          OnEnter = RoomEvent.Nothing
+          OnLeaving = RoomEvent.Nothing
           Environment = RoomEnvironment.``default`` }, modifiers
 
     

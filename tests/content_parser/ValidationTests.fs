@@ -15,16 +15,16 @@ let ``validateIdUniqueness returns Ok when all IDs are unique`` () =
                   Name = toLocalizedText "Room 1"
                   Description = toLocalizedText "A room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let room2 = { Id = RoomId.create "room2"
                   Name = toLocalizedText "Room 2"
                   Description = toLocalizedText "Another room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let thing1 = { Id = ThingId.create "thing1"
@@ -65,16 +65,16 @@ let ``validateIdUniqueness returns Error when room IDs are duplicated`` () =
                   Name = toLocalizedText "Room 1"
                   Description = toLocalizedText "A room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let room2 = { Id = RoomId.create "duplicate_room"
                   Name = toLocalizedText "Room 2"
                   Description = toLocalizedText "Another room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let content = { Adventure = None
@@ -131,8 +131,8 @@ let ``validateIdUniqueness returns Error when room and thing IDs collide`` () =
                  Name = toLocalizedText "Room"
                  Description = toLocalizedText "A room"
                  Connections = Map.empty
-                 OnEnter = None
-                 OnLeaving = None
+                 OnEnter = RoomEvent.Nothing
+                 OnLeaving = RoomEvent.Nothing
                  Environment = RoomEnvironment.``default`` }
 
     let thing = { Id = ThingId.create "conflicting_id"
@@ -164,16 +164,16 @@ let ``validateIdUniqueness returns all duplicate IDs`` () =
                   Name = toLocalizedText "Room 1"
                   Description = toLocalizedText "A room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let room2 = { Id = RoomId.create "dup1"
                   Name = toLocalizedText "Room 2"
                   Description = toLocalizedText "Another room"
                   Connections = Map.empty
-                  OnEnter = None
-                  OnLeaving = None
+                  OnEnter = RoomEvent.Nothing
+                  OnLeaving = RoomEvent.Nothing
                   Environment = RoomEnvironment.``default`` }
 
     let thing1 = { Id = ThingId.create "dup2"
