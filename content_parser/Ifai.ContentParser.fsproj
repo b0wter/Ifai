@@ -13,16 +13,14 @@
         <Compile Include="IndentationMapper.fs" />
         <Compile Include="Validation.fs" />
         <Compile Include="Dto\Dto.fs" />
-        <Compile Include="Dto\Pto.fs" />
-        <Compile Include="Dto\IfaParser.fs" />
         <Compile Include="Dto\ContentParser.fs" />
         <Compile Include="Content.fs" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="DynamicExpresso.Core" />
-      <PackageReference Include="FSharp.Core" />
       <PackageReference Include="FParsec" />
+      <PackageReference Include="FSharp.Core" />
       <PackageReference Include="FsToolkit.ErrorHandling" />
       <PackageReference Include="Pidgin" />
       <PackageReference Include="YamlDotNet" />
