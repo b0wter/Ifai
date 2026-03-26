@@ -10,6 +10,7 @@
     <Compile Include="IfaParserTests.fs" />
     <Compile Include="ParserTests.fs" />
     <Compile Include="TextTests.fs" />
+    <Compile Include="WorldTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
