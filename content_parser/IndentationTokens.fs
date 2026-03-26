@@ -46,19 +46,19 @@ type TraitPto = {
 }
 
 
-type ItemCategory =
+type ThingCategory =
     | Item
     | Decoration
 
 
-type ItemPto = {
+type ThingPto = {
     Id: string option
     Synonyms: string list
     Desc: string
     Interactions: InteractionPto list
     Traits: TraitPto list
     Modifiers: VariablePto list
-    Category: ItemCategory
+    Category: ThingCategory
     NeedsDiscovery: bool // default case is false
     IsAbstract: bool // default case is false
 }
@@ -498,20 +498,21 @@ module IndentationTokens =
         
         (room, unusedLines)
 
-    let toItemPto (lines: ContentLine list) : ItemPto * ContentLine list =
-        let afterItemStart, category = 
+    let toThingPto (lines: ContentLine list) : ThingPto * ContentLine list =
+        let afterThingStart, category = 
             match lines with
-            | ContentLine.ComplexLine cl :: rest when cl.Indentation = 0u && cl.Key = "item" -> rest, ItemCategory.Item
-            | ContentLine.ComplexLine cl :: rest when cl.Indentation = 0u && cl.Key = "decoration" -> rest, ItemCategory.Decoration
-            | _ -> failwith "Input must start with an item or decoration definition"
+            | ContentLine.ComplexLine cl :: rest when cl.Indentation = 0u && cl.Key = "item" -> rest, ThingCategory.Item
+            | ContentLine.ComplexLine cl :: rest when cl.Indentation = 0u && cl.Key = "decoration" -> rest,
+                                                                                                      ThingCategory.Decoration
+            | _ -> failwith "Input must start with an thing or decoration definition"
 
-        let rec getItemBlock acc lines =
+        let rec getThingBlock acc lines =
             match lines with
             | [] -> (List.rev acc, [])
             | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u -> (List.rev acc, lines)
-            | head :: rest -> getItemBlock (head :: acc) rest
+            | head :: rest -> getThingBlock (head :: acc) rest
 
-        let itemLines, unusedLines = getItemBlock [] afterItemStart
+        let thingLines, unusedLines = getThingBlock [] afterThingStart
 
         let getValue key (lines: ContentLine list) =
             lines |> List.tryPick (function
@@ -519,30 +520,30 @@ module IndentationTokens =
                 | _ -> None)
 
         let synonyms = 
-            getValue "synonyms" itemLines 
+            getValue "synonyms" thingLines 
             |> Option.map (fun s -> s.Split(',') |> Array.toList |> List.map _.Trim())
             |> Option.defaultValue []
             
         let isAbstract =
-            getValue "isabstract" itemLines
+            getValue "isabstract" thingLines
             |> Option.map Boolean.Parse
             |> Option.defaultValue false
 
         let needsDiscovery =
-            getValue "needsdiscovery" itemLines
+            getValue "needsdiscovery" thingLines
             |> Option.map Boolean.Parse
             |> Option.defaultValue false
 
-        let item = {
-            Id = getValue "id" itemLines
+        let thing = {
+            Id = getValue "id" thingLines
             Synonyms = synonyms
-            Desc = parseDesc itemLines
-            Interactions = parseInteractions itemLines
-            Traits = parseTraits itemLines
-            Modifiers = parseModifiers itemLines
+            Desc = parseDesc thingLines
+            Interactions = parseInteractions thingLines
+            Traits = parseTraits thingLines
+            Modifiers = parseModifiers thingLines
             Category = category
             IsAbstract = isAbstract
             NeedsDiscovery = needsDiscovery
         }
         
-        (item, unusedLines)
+        (thing, unusedLines)

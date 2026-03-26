@@ -8,7 +8,7 @@
   <ItemGroup>
     <Compile Include="ContentTests.fs" />
     <Compile Include="IndentationMapperTests.fs" />
-    <Compile Include="ItemPtoTests.fs" />
+    <Compile Include="ThingPtoTests.fs" />
     <Compile Include="RoomPtoTests.fs" />
     <Compile Include="IndentationParserTests.fs" />
     <Compile Include="ValidationTests.fs" />

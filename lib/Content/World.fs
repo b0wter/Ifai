@@ -8,10 +8,10 @@ type World = {
     
     Rooms: Map<RoomId, Room>
     RoomModifiers: Map<RoomId, Set<RoomModifier>>
-    
-    Items: Map<ThingId, Thing>
-    ItemModifiers: Map<ThingId, Set<ThingModifier>>
-    ItemLocations: Map<ThingId, ThingLocation>
+
+    Things: Map<ThingId, Thing>
+    ThingModifiers: Map<ThingId, Set<ThingModifier>>
+    ThingLocations: Map<ThingId, ThingLocation>
     
     Characters: Map<CharacterId, Character>
     CharacterModifiers: Map<CharacterId, Set<CharacterModifiers>>
@@ -24,21 +24,21 @@ type World = {
 }
 
 module World =
-    let init (rooms: Room list) (initialRoom: RoomId) (items: Thing list) (itemLocations: Map<ThingId, ThingLocation>) =
-        // sets the location of all items that have no location to "nowhere"
+    let init (rooms: Room list) (initialRoom: RoomId) (things: Thing list) (thingLocations: Map<ThingId, ThingLocation>) =
+        // sets the location of all things that have no location to "nowhere"
         let locations =
-            items
+            things
             |> List.map _.Id
-            |> List.except (itemLocations.Keys |> List.ofSeq)
-            |> List.fold (fun acc next -> acc |> Map.add next ThingLocation.Nowhere) itemLocations
-            
+            |> List.except (thingLocations.Keys |> List.ofSeq)
+            |> List.fold (fun acc next -> acc |> Map.add next ThingLocation.Nowhere) thingLocations
+
         let roomMap =
             rooms
             |> List.map (fun r -> r.Id, r)
             |> Map.ofList
 
-        let itemMap =
-            items
+        let thingsMap =
+            things
             |> List.map (fun i -> i.Id, i)
             |> Map.ofList
         {
@@ -46,9 +46,9 @@ module World =
             CurrentRoomId = initialRoom
             Rooms = roomMap
             RoomModifiers = Map.empty
-            Items = itemMap
-            ItemModifiers = Map.empty
-            ItemLocations = locations
+            Things = thingsMap
+            ThingModifiers = Map.empty
+            ThingLocations = locations
             Characters = Map.empty
             CharacterModifiers = Map.empty
             CharacterLocations = Map.empty

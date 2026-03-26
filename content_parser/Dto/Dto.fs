@@ -7,7 +7,7 @@ type RoomDto = {
 }
 
 type TargetDto
-    = ItemTarget of Ifai.Lib.ThingId
+    = ThingTarget of Ifai.Lib.ThingId
     | RoomTarget of Ifai.Lib.RoomId
     | CharacterTarget of Ifai.Lib.CharacterId
 
@@ -48,7 +48,7 @@ type InteractionDto = {
     SubActions: SubInteractionDto list
 }
 
-type ItemDto = {
+type ThingDto = {
     Id: string option
     Synonyms: string list
     Description: string
@@ -67,5 +67,5 @@ type DecorationDto = {
 
 type Dto
     = Room of RoomDto
-    | Item of ItemDto
+    | Thing of ThingDto
     | Decoration of DecorationDto

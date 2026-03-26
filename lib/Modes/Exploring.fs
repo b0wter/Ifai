@@ -174,14 +174,14 @@ let resolveUserIntent (world: World) (state: ExploringState) (input: Input) : Ex
 
 
 /// <summary>
-/// Searches the room for an item that matches the player input. Checks the name as well as all synonyms.
+/// Searches the room for an thing that matches the player input. Checks the name as well as all synonyms.
 /// Uses the current language for the matching.<br/>
-/// If no item is found in the room, continues by searching the inventory for a matching item
+/// If no thing is found in the room, continues by searching the inventory for a matching thing
 /// </summary>
-let rec tryFindItemByPlayerInput (input: string) (world: World) : Thing list =
-    let rec isItemWithPlayerOrInRoom (itemId: ThingId) : bool =
-        match world.ItemLocations |> Map.tryFind itemId with
-        | Some (ThingLocation.InOtherThing otherId) -> otherId |> isItemWithPlayerOrInRoom
+let rec tryFindThingByPlayerInput (input: string) (world: World) : Thing list =
+    let rec isThingWithPlayerOrInRoom (thingId: ThingId) : bool =
+        match world.ThingLocations |> Map.tryFind thingId with
+        | Some (ThingLocation.InOtherThing otherId) -> otherId |> isThingWithPlayerOrInRoom
         | Some ThingLocation.Nowhere -> false
         | Some ThingLocation.Player -> true
         | Some (ThingLocation.Room roomId) when roomId = world.CurrentRoomId -> true
@@ -190,20 +190,20 @@ let rec tryFindItemByPlayerInput (input: string) (world: World) : Thing list =
         | None -> false
 
     (*
-    let doesNameOfSynonymMatch (toLookFor: string) (item: Item) : bool =
-        (item.Name :: item.Synonyms)
+    let doesNameOfSynonymMatch (toLookFor: string) (thing: Thing) : bool =
+        (thing.Name :: thing.Synonyms)
         |> List.exists (fun t -> Text.toDisplayableWithoutParameters )
     *)
         
-    let availableItems =
-        world.Items
+    let availableThings =
+        world.Things
         |> Map.keys
-        |> Seq.filter isItemWithPlayerOrInRoom
-        |> Seq.map (fun x -> world.Items |> Map.find x)
+        |> Seq.filter isThingWithPlayerOrInRoom
+        |> Seq.map (fun x -> world.Things |> Map.find x)
 
     (*
-    availableItems
-    |> Seq.filter (fun item -> )
+    availableThings
+    |> Seq.filter (fun thing -> )
     *)
     failwith "rekt"
 
@@ -232,10 +232,10 @@ let handleIntent (world: World) (state: ExploringState) (intent: ExploringIntent
         let room = world |> World.currentRoom
         StepResult.init world state
         |> StepResult.withRender (RenderAction.Batch [RenderAction.LocalizedText room.Name; RenderAction.LocalizedText room.Description])
-    | Examine item ->
+    | Examine thingId ->
         StepResult.init world state
         |> StepResult.withRender (RenderAction.Fallback "Examining in the exploring mode has not been implemented yet")
-    | Take item ->
+    | Take thingId ->
         StepResult.init world state
         |> StepResult.withRender (RenderAction.Fallback "Taking in the exploring mode has not been implemented yet")
     | TakeAll ->

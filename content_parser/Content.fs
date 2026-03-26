@@ -43,12 +43,12 @@ let createWorld (contents: MappedContent list) : World =
         
         let rooms = allRooms |> List.map fst
         let things = allThings |> List.map (fun (t, _, _) -> t)
-        let itemLocations = 
+        let thingLocations = 
             allThings 
             |> List.map (fun (t, _, l) -> t.Id, l)
             |> Map.ofList
         
-        let world = World.init rooms adventure.InitialRoom things itemLocations
+        let world = World.init rooms adventure.InitialRoom things thingLocations
         
         let roomModifiers = 
             allRooms 
@@ -62,7 +62,7 @@ let createWorld (contents: MappedContent list) : World =
             
         { world with 
             RoomModifiers = roomModifiers
-            ItemModifiers = thingModifiers }
+            ThingModifiers = thingModifiers }
 
 
 let createWorldFromFolder (folder: string) : Result<World, string> =

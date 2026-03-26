@@ -251,7 +251,7 @@ let constructGameStateInfo (model: Model) : GameStateInfo =
         { RoomInfo.Name = room.Name |> asDisplayableL
           RoomInfo.Description = room.Description |> asDisplayableL
           RoomInfo.Exits = Array.empty
-          RoomInfo.Items = Array.empty
+          RoomInfo.Things = Array.empty
           RoomInfo.Characters = Array.empty }
 
     let room = model.World |> World.currentRoom |> constructRoomInfo

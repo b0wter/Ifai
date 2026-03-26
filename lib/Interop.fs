@@ -26,7 +26,7 @@ type NarrativeStyleInfo =
     | Dialogue = 3
     | System = 4
 
-type ItemInfo =
+type ThingInfo =
     { Name: Text.DisplayableText
       Description: Text.DisplayableText
       Visibility: VisibilityInfo }
@@ -45,11 +45,11 @@ type RoomInfo =
     { Name: Text.DisplayableText
       Description: Text.DisplayableText
       Exits: ConnectionInfo[]
-      Items: ItemInfo[]
+      Things: ThingInfo[]
       Characters: CharacterInfo[] }
 
 type PlayerInfo =
-    { Inventory: ItemInfo[] }
+    { Inventory: ThingInfo[] }
 
 type GameStateInfo =
     { Room: RoomInfo

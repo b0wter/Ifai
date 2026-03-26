@@ -21,7 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _inputText = string.Empty;
     [ObservableProperty] private string _roomDescription = string.Empty;
     [ObservableProperty] private string _roomName = string.Empty;
-    [ObservableProperty] private List<string> _items = [];
+    [ObservableProperty] private List<string> _things = [];
 
     public System.Collections.ObjectModel.ObservableCollection<NewHistoryItemMessage> History { get; } = new();
     public System.Collections.ObjectModel.ObservableCollection<string> DebugMessages { get; } = new();
@@ -129,7 +129,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         RoomDescription = gameState.Room.Description.Text;
         RoomName = gameState.Room.Name.Text;
-        Items = gameState.Player.Inventory.Select(i => i.Name.Text).ToList();
+        Things = gameState.Player.Inventory.Select(t => t.Name.Text).ToList();
     }
 
     private void HandleClearScreen()

@@ -53,7 +53,7 @@ module IndentationMapper =
               Lockable.OnLocked = onLocked
               Lockable.OnUnlocked = onUnlocked } |> Lockable |> List.singleton
         | "container" ->
-            { Container.MaximumNumberOfItems = None
+            { Container.MaximumNumberOfThings = None
               Container.MaximumWeight = None } |> Container |> List.singleton
         | "door" ->
             let isOpen = find "isopen" |> forceBool
@@ -122,32 +122,32 @@ module IndentationMapper =
           Text.LocalizedText.Parameters = None
           Text.LocalizedText.ParameterFormatting = None }
     
-    let mapItem (roomId: string) (item: ItemPto) : Thing * ThingModifier list =
-        if item.Synonyms.IsEmpty then failwith $"Cannot create thing from a ItemPto without synonyms: %A{item}"
+    let mapThing (roomId: string) (thing: ThingPto) : Thing * ThingModifier list =
+        if thing.Synonyms.IsEmpty then failwith $"Cannot create thing from a ThingPto without synonyms: %A{thing}"
         
         let id =
             let prefix =
-                match item.Category with
-                | ItemCategory.Decoration -> $"decorations.%s{roomId}."
-                | ItemCategory.Item -> "items."
+                match thing.Category with
+                | ThingCategory.Decoration -> $"decorations.%s{roomId}."
+                | ThingCategory.Item -> "items."
             let id =
-                item.Id
-                |> Option.defaultValue $"%s{item.Synonyms.Head}-%A{Guid.NewGuid()}"
+                thing.Id
+                |> Option.defaultValue $"%s{thing.Synonyms.Head}-%A{Guid.NewGuid()}"
             prefix + id
 
         let modifiers =
-            item.Modifiers |> List.map (mapVariable >> ThingModifier.Custom)
+            thing.Modifiers |> List.map (mapVariable >> ThingModifier.Custom)
 
         {
             Thing.Id = id |> ThingId.create
-            Thing.Synonyms = item.Synonyms |> List.map toLocalizedText
-            Thing.Description = item.Desc |> toLocalizedText
-            Thing.IsAbstract = item.IsAbstract
-            Thing.IsPortable = match item.Category with ItemCategory.Item -> true | ItemCategory.Decoration -> false
+            Thing.Synonyms = thing.Synonyms |> List.map toLocalizedText
+            Thing.Description = thing.Desc |> toLocalizedText
+            Thing.IsAbstract = thing.IsAbstract
+            Thing.IsPortable = match thing.Category with ThingCategory.Item -> true | ThingCategory.Decoration -> false
             Thing.LegalOwner = LegalOwner.Nobody
-            Thing.Name = item.Synonyms.First() |> toLocalizedText
-            Thing.Traits = item.Traits |> List.collect mapTrait
-            Thing.NeedsDiscovery = item.NeedsDiscovery
+            Thing.Name = thing.Synonyms.First() |> toLocalizedText
+            Thing.Traits = thing.Traits |> List.collect mapTrait
+            Thing.NeedsDiscovery = thing.NeedsDiscovery
 
             // TODO: set interactibility to a meaningful value
             Thing.Interactability = Interactability.All
@@ -203,8 +203,8 @@ module IndentationMapper =
             | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u && (cl.Key = "item" || cl.Key = "decoration") ->
                 match currentRoomId with
                 | Some rid ->
-                    let itemPto, rest = IndentationTokens.toItemPto remaining
-                    let thing, mods = mapItem rid itemPto
+                    let thingPto, rest = IndentationTokens.toThingPto remaining
+                    let thing, mods = mapThing rid thingPto
                     let location = ThingLocation.Room (RoomId.create rid)
                     loop rest { acc with Things = (thing, mods, location) :: acc.Things } (Some rid)
                 | None -> failwith "Found item/decoration before any room definition"

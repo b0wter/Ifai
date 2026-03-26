@@ -5,7 +5,7 @@ open Ifai.Lib
 type SpellTarget =
     | Room
     | Character
-    | Item
+    | Thing
 
 
 type Spell = {

@@ -40,10 +40,10 @@ module ContentTests =
         let world = Content.createWorld contents
         world.CurrentRoomId |> should equal initialRoomId
         world.Rooms.Count |> should be (greaterThan 1)
-        world.Items.Count |> should be (greaterThan 0)
+        world.Things.Count |> should be (greaterThan 0)
         
         // Check that item locations are correctly set
-        world.ItemLocations.Count |> should equal world.Items.Count
+        world.ThingLocations.Count |> should equal world.Things.Count
         
         // Check for specific room from underground_lake.ifa
         let lakeId = RoomId.create "underground_lake"
@@ -59,6 +59,6 @@ module ContentTests =
         let world = Content.createWorld contents
         // In in_front_of_house.ifa, there's a door_key with a 'discovered' modifier
         let doorKeyId = ThingId.create "items.door_key"
-        world.ItemModifiers.ContainsKey(doorKeyId) |> should be True
-        let modifiers = world.ItemModifiers[doorKeyId]
+        world.ThingModifiers.ContainsKey(doorKeyId) |> should be True
+        let modifiers = world.ThingModifiers[doorKeyId]
         modifiers |> Set.exists (function ThingModifier.Custom (AttributeId "discovered", AttributeValue.Bool false) -> true | _ -> false) |> should be True

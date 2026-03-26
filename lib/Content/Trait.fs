@@ -23,7 +23,7 @@ type Passage = {
 }
 
 type Container = {
-    MaximumNumberOfItems: uint option
+    MaximumNumberOfThings: uint option
     MaximumWeight: uint option
 }
 
@@ -47,7 +47,7 @@ type Trait =
                 |> Map.add (nameof(l.IsLocked)) l.IsLocked
             | Container c ->
                 Map.empty
-                |> Map.add (nameof(c.MaximumNumberOfItems)) (c.MaximumNumberOfItems :> obj)
+                |> Map.add (nameof(c.MaximumNumberOfThings)) (c.MaximumNumberOfThings :> obj)
                 |> Map.add (nameof(c.MaximumWeight)) (c.MaximumWeight :> obj)
             | Passage _ ->
                 Map.empty

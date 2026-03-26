@@ -1,4 +1,4 @@
-module ItemPtoTests
+module ThingPtoTests
 
 open System.IO
 open Ifai.ContentParser
@@ -9,18 +9,18 @@ open Xunit
 open FsUnit.Xunit
 
 [<Fact>]
-let ``Convert ContentLine list to ItemPto`` () =
+let ``Convert ContentLine list to ThingPto`` () =
     let input = """item:
   synonyms: pebble, stone, small stone
   desc: |
     A pebble that nicely fits into your palm. Endless possibilities!
 """
     let lines = IndentationParser.parse input
-    let item, unused = IndentationTokens.toItemPto lines
+    let thingPto, unused = IndentationTokens.toThingPto lines
     
-    item.Synonyms |> should equal ["pebble"; "stone"; "small stone"]
-    item.Desc.Replace("\r\n", "\n") |> should equal "A pebble that nicely fits into your palm. Endless possibilities!"
-    item.Category |> should equal ItemCategory.Item
+    thingPto.Synonyms |> should equal ["pebble"; "stone"; "small stone"]
+    thingPto.Desc.Replace("\r\n", "\n") |> should equal "A pebble that nicely fits into your palm. Endless possibilities!"
+    thingPto.Category |> should equal ThingCategory.Item
     unused.Length |> should equal 0
 
 [<Fact>]
@@ -32,16 +32,16 @@ let ``Convert ContentLine list to DecorationPto`` () =
     A calm lake.
 """
     let lines = IndentationParser.parse input
-    let item, unused = IndentationTokens.toItemPto lines
+    let thingPto, unused = IndentationTokens.toThingPto lines
     
-    item.Id |> should equal (Some "lake")
-    item.Synonyms |> should equal ["lake"; "water"]
-    item.Desc.Replace("\r\n", "\n") |> should equal "A calm lake."
-    item.Category |> should equal ItemCategory.Decoration
+    thingPto.Id |> should equal (Some "lake")
+    thingPto.Synonyms |> should equal ["lake"; "water"]
+    thingPto.Desc.Replace("\r\n", "\n") |> should equal "A calm lake."
+    thingPto.Category |> should equal ThingCategory.Decoration
     unused.Length |> should equal 0
 
 [<Fact>]
-let ``toItemPto returns unused lines following the item definition`` () =
+let ``toThingPto returns unused lines following the thing definition`` () =
     let input = """item:
   id: some_item
   synonyms: item
@@ -51,9 +51,9 @@ decoration:
   id: some_decoration
 """
     let lines = IndentationParser.parse input
-    let item, unused = IndentationTokens.toItemPto lines
+    let thingPto, unused = IndentationTokens.toThingPto lines
     
-    item.Id |> should equal (Some "some_item")
+    thingPto.Id |> should equal (Some "some_item")
     
     unused.Length |> should be (greaterThan 0)
     match unused[0] with
@@ -61,16 +61,16 @@ decoration:
     | _ -> failwith "Expected decoration line"
 
 [<Fact>]
-let ``toItemPto fails if first line is not item or decoration start`` () =
+let ``toThingPto fails if first line is not item or decoration start`` () =
     let input = """room:
   id: some_room
 """
     let lines = IndentationParser.parse input
-    (fun () -> IndentationTokens.toItemPto lines |> ignore) |> should throw typeof<System.Exception>
+    (fun () -> IndentationTokens.toThingPto lines |> ignore) |> should throw typeof<System.Exception>
 
 
 [<Fact>]
-let ``Convert ItemPto with interactions`` () =
+let ``Convert ThingPto with interactions`` () =
     let input = """item:
   synonyms: torch
   desc: |
@@ -88,10 +88,10 @@ let ``Convert ItemPto with interactions`` () =
             say: "The torch is already lit"
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thing, _ = IndentationTokens.toThingPto lines
     
-    item.Interactions.Length |> should equal 1
-    let inter = item.Interactions[0]
+    thing.Interactions.Length |> should equal 1
+    let inter = thing.Interactions[0]
     inter.Name |> should equal "light"
     inter.Synonyms |> should equal ["light up"; "burn"]
     inter.Requires |> should equal ["items.matches"]
@@ -111,7 +111,7 @@ let ``Convert ItemPto with interactions`` () =
 
 
 [<Fact>]
-let ``Convert ItemPto with shorthand interactions`` () =
+let ``Convert ThingPto with shorthand interactions`` () =
     let input = """item:
   synonyms: pebble
   desc: A pebble.
@@ -126,23 +126,23 @@ let ``Convert ItemPto with shorthand interactions`` () =
           say: "The sign is already down"
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thingPto, _ = IndentationTokens.toThingPto lines
     
-    item.Interactions.Length |> should equal 2
+    thingPto.Interactions.Length |> should equal 2
     
-    let read = item.Interactions |> List.find (fun i -> i.Name = "read")
+    let read = thingPto.Interactions |> List.find (fun i -> i.Name = "read")
     read.Outcomes.Length |> should equal 1
     read.Outcomes[0].Actions[0].Operation |> should equal "say"
     read.Outcomes[0].Actions[0].Arguments |> should equal "\"The sign says: something\""
     
-    let kick = item.Interactions |> List.find (fun i -> i.Name = "kick")
+    let kick = thingPto.Interactions |> List.find (fun i -> i.Name = "kick")
     kick.Synonyms |> should equal ["punch"; "strike"]
     kick.Outcomes.Length |> should equal 2
     kick.Outcomes[0].If |> should equal "!isDown"
     kick.Outcomes[1].If |> should equal "isDown"
 
 [<Fact>]
-let ``Convert ItemPto with complex interactions from underground_lake`` () =
+let ``Convert ThingPto with complex interactions from underground_lake`` () =
     let input = """decoration:
   id: wooden_door
   interactions:
@@ -170,12 +170,12 @@ let ``Convert ItemPto with complex interactions from underground_lake`` () =
           say: You cannot unlock the door without the key
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thingPto, _ = IndentationTokens.toThingPto lines
     
-    let openInter = item.Interactions |> List.find (fun i -> i.Name = "open")
+    let openInter = thingPto.Interactions |> List.find (fun i -> i.Name = "open")
     openInter.Outcomes.Length |> should equal 3
     
-    let unlockInter = item.Interactions |> List.find (fun i -> i.Name = "unlock")
+    let unlockInter = thingPto.Interactions |> List.find (fun i -> i.Name = "unlock")
     unlockInter.Requires |> should equal ["items.iron_key"]
     unlockInter.Outcomes.Length |> should equal 3
     unlockInter.Outcomes[2].If |> should equal "otherwise"
@@ -193,8 +193,8 @@ let ``Extract key item with interactions from in_front_of_house.ifa`` () =
         match l with
         | [] -> failwith "Doormat not found"
         | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u ->
-            let item, rest = IndentationTokens.toItemPto l
-            if item.Id = Some "doormat" then item else findDoormat rest
+            let thingPto, rest = IndentationTokens.toThingPto l
+            if thingPto.Id = Some "doormat" then thingPto else findDoormat rest
         | _ :: rest -> findDoormat rest
         
     let doormat = findDoormat lines
@@ -210,7 +210,7 @@ let ``Extract key item with interactions from in_front_of_house.ifa`` () =
     inter.Outcomes[0].Actions |> List.exists (fun a -> a.Operation = "remove" && a.Arguments = "") |> should be True
 
 [<Fact>]
-let ``Convert ItemPto with traits`` () =
+let ``Convert ThingPto with traits`` () =
     let input = """decoration:
   id: wooden_door
   traits:
@@ -221,10 +221,10 @@ let ``Convert ItemPto with traits`` () =
   desc: A wooden door.
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let things, _ = IndentationTokens.toThingPto lines
     
-    item.Traits.Length |> should equal 1
-    let t = item.Traits[0]
+    things.Traits.Length |> should equal 1
+    let t = things.Traits[0]
     t.Name |> should equal "door"
     t.Properties.Length |> should equal 3
     t.Properties |> List.find (fun (k, v) -> k = "isLocked") |> snd |> should equal "true"
@@ -232,7 +232,7 @@ let ``Convert ItemPto with traits`` () =
     t.Properties |> List.find (fun (k, v) -> k = "key") |> snd |> should equal "items.iron_key, items.master_key"
 
 [<Fact>]
-let ``Convert ItemPto with multiple traits and no properties`` () =
+let ``Convert ThingPto with multiple traits and no properties`` () =
     let input = """item:
   synonyms: rock
   traits:
@@ -241,13 +241,13 @@ let ``Convert ItemPto with multiple traits and no properties`` () =
   desc: A rock.
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thingPto, _ = IndentationTokens.toThingPto lines
     
-    item.Traits.Length |> should equal 2
-    item.Traits[0].Name |> should equal "heavy"
-    item.Traits[0].Properties.Length |> should equal 0
-    item.Traits[1].Name |> should equal "throwable"
-    item.Traits[1].Properties.Length |> should equal 0
+    thingPto.Traits.Length |> should equal 2
+    thingPto.Traits[0].Name |> should equal "heavy"
+    thingPto.Traits[0].Properties.Length |> should equal 0
+    thingPto.Traits[1].Name |> should equal "throwable"
+    thingPto.Traits[1].Properties.Length |> should equal 0
 
 [<Fact>]
 let ``Extract haustür with traits from in_front_of_house.ifa`` () =
@@ -259,8 +259,8 @@ let ``Extract haustür with traits from in_front_of_house.ifa`` () =
         match l with
         | [] -> failwith "Door not found"
         | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u ->
-            let item, rest = IndentationTokens.toItemPto l
-            if item.Synonyms |> List.contains "haustür" then item else findDoor rest
+            let thingPto, rest = IndentationTokens.toThingPto l
+            if thingPto.Synonyms |> List.contains "haustür" then thingPto else findDoor rest
         | _ :: rest -> findDoor rest
         
     let door = findDoor lines
@@ -274,7 +274,7 @@ let ``Extract haustür with traits from in_front_of_house.ifa`` () =
     t.Properties |> List.exists (fun (k, _) -> k = "key") |> should be True
 
 [<Fact>]
-let ``Convert ItemPto with variables`` () =
+let ``Convert ThingPto with variables`` () =
     let input = """item:
   synonyms: torch
   modifiers:
@@ -285,19 +285,19 @@ let ``Convert ItemPto with variables`` () =
   desc: A torch.
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thingPto, _ = IndentationTokens.toThingPto lines
     
-    item.Modifiers.Length |> should equal 3
+    thingPto.Modifiers.Length |> should equal 3
     
-    let isLit = item.Modifiers |> List.find (fun v -> v.Name = "isLit")
+    let isLit = thingPto.Modifiers |> List.find (fun v -> v.Name = "isLit")
     isLit.Value |> should equal "false"
     isLit.Type |> should equal "bool"
     
-    let lifetime = item.Modifiers |> List.find (fun v -> v.Name = "lifetime")
+    let lifetime = thingPto.Modifiers |> List.find (fun v -> v.Name = "lifetime")
     lifetime.Value |> should equal "123"
     lifetime.Type |> should equal "float"
     
-    let strength = item.Modifiers |> List.find (fun v -> v.Name = "strength")
+    let strength = thingPto.Modifiers |> List.find (fun v -> v.Name = "strength")
     strength.Value |> should equal "100"
     strength.Type |> should equal "integer"
 
@@ -313,18 +313,18 @@ let ``Inferred types for variables`` () =
   desc: item
 """
     let lines = IndentationParser.parse input
-    let item, _ = IndentationTokens.toItemPto lines
+    let thingPto, _ = IndentationTokens.toThingPto lines
     
-    let someInt = item.Modifiers |> List.find (fun v -> v.Name = "someInt")
+    let someInt = thingPto.Modifiers |> List.find (fun v -> v.Name = "someInt")
     someInt.Type |> should equal "integer"
     
-    let someFloat = item.Modifiers |> List.find (fun v -> v.Name = "someFloat")
+    let someFloat = thingPto.Modifiers |> List.find (fun v -> v.Name = "someFloat")
     someFloat.Type |> should equal "float"
     
-    let someString = item.Modifiers |> List.find (fun v -> v.Name = "someString")
+    let someString = thingPto.Modifiers |> List.find (fun v -> v.Name = "someString")
     someString.Type |> should equal "string"
     
-    let someBool = item.Modifiers |> List.find (fun v -> v.Name = "someBool")
+    let someBool = thingPto.Modifiers |> List.find (fun v -> v.Name = "someBool")
     someBool.Type |> should equal "bool"
 
 [<Fact>]
@@ -337,8 +337,8 @@ let ``Extract door_key with variables from in_front_of_house.ifa`` () =
         match l with
         | [] -> failwith "Key not found"
         | ContentLine.ComplexLine cl :: _ when cl.Key = "item" && cl.Indentation = 0u ->
-            let item, rest = IndentationTokens.toItemPto l
-            if item.Id = Some "door_key" then item else findKey rest
+            let thingPto, rest = IndentationTokens.toThingPto l
+            if thingPto.Id = Some "door_key" then thingPto else findKey rest
         | _ :: rest -> findKey rest
         
     let key = findKey lines
@@ -358,8 +358,8 @@ let ``Extract second decoration from in_front_of_house.ifa`` () =
     room.Id |> should equal "in_front_of_house"
     
     // Next should be a decoration
-    let item1, linesAfterItem1 = IndentationTokens.toItemPto linesAfterRoom
-    item1.Synonyms |> should contain "Gartentor"
+    let thingPto1, linesAfterThing1 = IndentationTokens.toThingPto linesAfterRoom
+    thingPto1.Synonyms |> should contain "Gartentor"
     
     // Skip some lines until the next decoration
     let rec findNextDecoration l =
@@ -368,10 +368,10 @@ let ``Extract second decoration from in_front_of_house.ifa`` () =
         | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u -> l
         | _ :: rest -> findNextDecoration rest
         
-    let nextItemLines = findNextDecoration linesAfterItem1
-    let item2, _ = IndentationTokens.toItemPto nextItemLines
-    item2.Synonyms |> List.contains "Himmel" |> should be True
-    item2.Desc.Contains("Graue Schlieren zieren den Himmel") |> should be True
+    let nextThingLines = findNextDecoration linesAfterThing1
+    let thing2, _ = IndentationTokens.toThingPto nextThingLines
+    thing2.Synonyms |> List.contains "Himmel" |> should be True
+    thing2.Desc.Contains("Graue Schlieren zieren den Himmel") |> should be True
 
 [<Fact>]
 let ``Extract all items and decorations from in_front_of_house.ifa`` () =
@@ -387,14 +387,14 @@ let ``Extract all items and decorations from in_front_of_house.ifa`` () =
         match l with
         | [] -> List.rev acc
         | ContentLine.ComplexLine cl :: _ when (cl.Key = "item" || cl.Key = "decoration") && cl.Indentation = 0u ->
-            let item, rest = IndentationTokens.toItemPto l
-            extractAll rest (item :: acc)
+            let thingPto, rest = IndentationTokens.toThingPto l
+            extractAll rest (thingPto :: acc)
         | _ :: rest -> extractAll rest acc
         
     let allPto = extractAll linesAfterRoom []
     
-    // For each ItemPto, map it to a Thing and ThingModifier list
-    let thingsWithModifiers = allPto |> List.map (IndentationMapper.mapItem "in_front_of_house")
+    // For each ThingPto, map it to a Thing and ThingModifier list
+    let thingsWithModifiers = allPto |> List.map (IndentationMapper.mapThing "in_front_of_house")
     let things = thingsWithModifiers |> List.map fst
     
     things.Length |> should equal 10
