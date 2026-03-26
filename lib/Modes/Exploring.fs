@@ -186,6 +186,7 @@ let rec tryFindItemByPlayerInput (input: string) (world: World) : Thing list =
         | Some ThingLocation.Player -> true
         | Some (ThingLocation.Room roomId) when roomId = world.CurrentRoomId -> true
         | Some (ThingLocation.Room _) -> false
+        | Some (ThingLocation.HeldBy _ ) -> false
         | None -> false
 
     (*

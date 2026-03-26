@@ -1,6 +1,7 @@
 namespace Ifai.Lib.Content
 
 open Ifai.Lib
+open Ifai.Lib.Shared
 
 type ThingLocation =
     | Room of RoomId
@@ -88,6 +89,22 @@ module Thing =
     let isAbstract i = i.IsAbstract
     let interactability i = i.Interactability
     let legalOwner i = i.LegalOwner
+    
+    
+    let asAttributes (t: Thing) (m: ThingModifier list) =
+        let isBroken =
+            AttributeId.create "isBroken",
+            m |> List.exists (function Broken -> true | _ -> false) |> AttributeValue.Bool
+        let isCovered =
+            AttributeId.create "isCovered",
+            m |> List.exists (function CoveredBy _ -> true | _ -> false) |> AttributeValue.Bool
+        let isPhasedOut =
+            AttributeId.create "isPhasedOut",
+            m |> List.exists (function OutOfPhase _ -> true | _ -> false) |> AttributeValue.Bool
+        let isCamouflaged =
+            AttributeId.create "isCamouflaged",
+            m |> List.exists (function Camouflaged _ -> true | _ -> false) |> AttributeValue.Bool
+        isBroken :: isCovered :: isPhasedOut :: isCamouflaged :: (t.Traits |> List.collect (fun t -> (t :> IAttributeTranslator).Translate())) @ (m |> List.choose (function Custom (a, v) -> Some (a, v) | _ -> None))
 
     
     let applyModifier (m: ThingModifier) (modifiers: Set<ThingModifier>) : Set<ThingModifier> =

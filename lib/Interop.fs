@@ -128,7 +128,7 @@ and RequestQuitMessage() =
     inherit EngineMessageInfo(EngineMessage.RequestQuit)
 
 and BatchMessage(messages: EngineMessageInfo[]) =
-    inherit EngineMessageInfo(EngineMessage.Batch (messages |> Array.map (fun m -> m.OriginalMessage)))
+    inherit EngineMessageInfo(EngineMessage.Batch (messages |> Array.map _.OriginalMessage))
     member _.Messages = messages
  
 
@@ -150,3 +150,15 @@ type Engine = {
     Output: IObservable<EngineMessageInfo>
     CancellationTokenSource: System.Threading.CancellationTokenSource
 }
+
+module InteropWorld =
+    let InitializeModel (world: Ifai.Lib.Content.World) (language: string) texts =
+        let exploringState =
+            { Ifai.Lib.Modes.Exploring.ExploringState.Foo = 42 }
+        
+        { Model.Language = Language.create language
+          Model.GameMode = [GameMode.Exploring exploringState]
+          Model.TextResources = texts
+          Model.World = world
+        }
+    

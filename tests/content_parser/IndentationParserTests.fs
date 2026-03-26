@@ -37,8 +37,8 @@ let ``Parse string line`` () =
     result |> should equal (Some (ContentLine.StringLine "    just some text"))
 
 [<Fact>]
-let ``Parse whole underground_lake.ifa file`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Parse whole in_front_of_house.ifa file`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let results = IndentationParser.parse content
     
@@ -53,21 +53,23 @@ let ``Parse whole underground_lake.ifa file`` () =
     // Line 1: room:
     results[0] |> should equal (ContentLine.ComplexLine { Indentation = 0u; Key = "room"; Value = None; StartsWithDash = false })
     
-    // Line 2:   id: underground_lake
-    results[1] |> should equal (ContentLine.ComplexLine { Indentation = 2u; Key = "id"; Value = Some "underground_lake"; StartsWithDash = false })
+    // Line 2:   id: in_front_of_house
+    results[1] |> should equal (ContentLine.ComplexLine { Indentation = 2u; Key = "id"; Value = Some "in_front_of_house"; StartsWithDash = false })
     
-    // Line 5:     - north: rooms.cave_tunnel
-    results[4] |> should equal (ContentLine.ComplexLine { Indentation = 4u; Key = "north"; Value = Some "rooms.cave_tunnel"; StartsWithDash = true })
+    // Line 9:     - haustür: rooms.hallway
+    results[8] |> should equal (ContentLine.ComplexLine { Indentation = 4u; Key = "haustür"; Value = Some "rooms.hallway"; StartsWithDash = true })
     
-    // Line 25:           destroy: this # will completely remove the pebble from the game
-    let destroyLine = findLine "destroy"
-    destroyLine |> should equal { Indentation = 10u; Key = "destroy"; Value = Some "this"; StartsWithDash = false }
+    // Line 71:            target: items.door_key
+    let targetLine = results |> List.find (function ContentLine.ComplexLine cl when cl.Key = "target" && cl.Value = Some "items.door_key" -> true | _ -> false)
+    match targetLine with
+    | ContentLine.ComplexLine cl -> cl.Indentation |> should equal 12u
+    | _ -> failwith "Expected target line"
 
-    // Line 22:    - throw, toss:
-    let throwLine = findLine "throw, toss"
-    throwLine |> should equal { Indentation = 4u; Key = "throw, toss"; Value = None; StartsWithDash = true }
+    // Line 12:    - riechen, schnuppern, schnüffeln:
+    let riechenLine = findLine "riechen, schnuppern, schnüffeln"
+    riechenLine |> should equal { Indentation = 4u; Key = "riechen, schnuppern, schnüffeln"; Value = None; StartsWithDash = true }
 
     // Check an unstructured line
-    // Line 13:    You stand at the entrance to a cave. ...
-    let caveDescPart = results |> List.find (function ContentLine.StringLine s when s.Contains("You stand at the entrance to a cave") -> true | _ -> false)
-    caveDescPart |> should equal (ContentLine.StringLine "    You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.")
+    // Line 5:    Du stehst in einem adretten Garten ...
+    let houseDescPart = results |> List.find (function ContentLine.StringLine s when s.Contains("Du stehst in einem adretten Garten") -> true | _ -> false)
+    houseDescPart |> should equal (ContentLine.StringLine "    Du stehst in einem adretten Garten vor einem alten Haus. Der Wind weht leicht durch zwei kleine Kirschbäume und kitzelt dich an der Nase.")

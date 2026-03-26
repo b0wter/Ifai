@@ -6,6 +6,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Conditions.fs" />
+        <Compile Include="Templates.fs" />
         <Compile Include="IndentationParser.fs" />
         <Compile Include="IndentationTokens.fs" />
         <Compile Include="IndentationMapper.fs" />
@@ -14,14 +16,16 @@
         <Compile Include="Dto\Pto.fs" />
         <Compile Include="Dto\IfaParser.fs" />
         <Compile Include="Dto\ContentParser.fs" />
+        <Compile Include="Content.fs" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="DynamicExpresso.Core" Version="2.19.3" />
-      <PackageReference Include="FParsec" Version="2.0.0-beta2" />
-      <PackageReference Include="FsToolkit.ErrorHandling" Version="5.2.0" />
-      <PackageReference Include="Pidgin" Version="3.5.1" />
-      <PackageReference Include="YamlDotNet" Version="15.1.4" />
+      <PackageReference Include="DynamicExpresso.Core" />
+      <PackageReference Include="FSharp.Core" />
+      <PackageReference Include="FParsec" />
+      <PackageReference Include="FsToolkit.ErrorHandling" />
+      <PackageReference Include="Pidgin" />
+      <PackageReference Include="YamlDotNet" />
     </ItemGroup>
 
     <ItemGroup>

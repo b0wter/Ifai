@@ -1,6 +1,10 @@
 namespace Ifai.Lib.Content
 
 open Ifai.Lib
+open Ifai.Lib.Shared
+
+type IHaveTraitParameters =
+    abstract member AsMap: Map<string, obj>
 
 type Openable = {
     IsOpen: bool
@@ -32,22 +36,27 @@ type Trait =
     | Lockable of Lockable
     | Passage of Passage
     | Container of Container
-
-type Door = {
-    InitiallyLocked: bool
-    InitiallyOpen: bool
-    OnOpened: string option
-    OnClosed: string option
-    OnLocked: string option
-    OnUnlocked: string option
-}
-
-type CompositeTrait =
-    | Door of Door
-
-module Traits =
-    let expandCompositeTraits = function
-        | Door state ->
-            [ Openable { IsOpen = state.InitiallyOpen; OnOpened = state.OnOpened; OnClosed = state.OnClosed }
-            , Lockable { IsLocked = state.InitiallyLocked; OnLocked = state.OnLocked; OnUnlocked = state.OnUnlocked }
-            ]
+    interface IHaveTraitParameters with
+        member this.AsMap =
+            match this with
+            | Openable o ->
+                Map.empty
+                |> Map.add (nameof(o.IsOpen)) o.IsOpen
+            | Lockable l ->
+                Map.empty
+                |> Map.add (nameof(l.IsLocked)) l.IsLocked
+            | Container c ->
+                Map.empty
+                |> Map.add (nameof(c.MaximumNumberOfItems)) (c.MaximumNumberOfItems :> obj)
+                |> Map.add (nameof(c.MaximumWeight)) (c.MaximumWeight :> obj)
+            | Passage _ ->
+                Map.empty
+    interface Shared.IAttributeTranslator with
+        member this.Translate() =
+            match this with
+            | Openable o ->
+                (AttributeId.create "isOpen", (o.IsOpen |> AttributeValue.Bool)) |> List.singleton
+            | Lockable l ->
+                (AttributeId.create "isLocked", (l.IsLocked |> AttributeValue.Bool)) |> List.singleton
+            | Passage _ -> []
+            | Container _ -> []

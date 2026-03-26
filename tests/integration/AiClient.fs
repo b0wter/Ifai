@@ -20,5 +20,5 @@ let ``AiClient should successfully send a message with default configuration`` (
         // We just want to see if it succeeds, contents don't matter.
         let! result = client.PromptAsync("Hello, this is a test message. Respond saying only 'test'")
         
-        result |> should equal "test"
+        result.ToLowerInvariant() |> should equal "test"
     }

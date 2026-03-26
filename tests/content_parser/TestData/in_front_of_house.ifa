@@ -1,0 +1,102 @@
+room:
+  id: in_front_of_house
+  name: "Vor dem Haus"
+  desc: |
+    Du stehst in einem adretten Garten vor einem alten Haus. Der Wind weht leicht durch zwei kleine Kirschbäume und kitzelt dich an der Nase.
+    Hinter dir, in südlicher Richtung, hörst du das Gartentor im Wind schlagen. Vor dir erhebt sich ein etwas in die Jahre gekommenes Haus.
+    Die Fenster sind liebevoll dekoriert, wenn auch ein wenig schmuddelig.
+  exits:
+    - haustür: rooms.hallway
+      via: decorations.in_front_of_house.door
+  interactions:
+    - riechen, schnuppern, schnüffeln:
+        say: In der Luft liegt der leicht würzige Geruch nasser Erde.
+
+decoration:
+  synonyms: Gartentor, Gartentür
+  desc: |
+    Das Gartentor hängt ein wenig schief und schlägt im Wind.
+    Hinter dem Tor geht es auf die Straße hinaus, aber diesen Weg zurückzukehren ist erst eine Option wenn du gefunden hast wofür du hergekommen bist.
+
+decoration:
+  synonyms: Himmel
+  desc: |
+    Graue Schlieren zieren den Himmel, die Sonne ist kaum sichtbar.
+
+decoration:
+  synonyms: Sonne
+  desc: |
+    Die Sonne ist kaum hinter den Wolken zu erkennen. Für einen Tag im Frühsomme ein trauriger Anblick, aber es stört dich nicht, da du geplant hast den Rest des Tages im Haus zu verbringen.
+
+decoration:
+  synonyms: weg, gehweg, gartenweg
+  desc: |
+    Unter deinen Schuhen knirscht ein alter Schotterweg der sich zwischen zwei Kirschbäumen hindurchschlängelt und vor der Haustür endet.
+
+decoration:
+  synonyms: Garten, Gras, Blumen
+  desc: |
+    Der Garten sieht aus wie einer dieser Gärten dessen Pflege mit viel Elan begonnen und dann ebenso schnell wieder aufgegeben wurde.
+
+decoration:
+  synonyms: baum, bäume, kirschbaum, kirschbäume, linker baum, rechter baum, linker kirschbaum, rechter kirschbaum
+  desc: |
+    Die Kirschbäume sind klein und knorrig. Sie tragen bereits Blüten, aber von der Ernte sind sie noch weit entfernt.
+    Im rechten Baum hängt eine schiefe Kinderschaukel an orangenen Seilen.
+
+decoration:
+  synonyms: haustür, tür
+  traits:
+    - door:
+        isLocked: true
+        isOpen: false
+        key: items.house_key
+  desc: |
+    Die Haustür ist aus altem Holz. Die blasse Farbe blättert bereits ab, dennoch wirkt sie stabil. Vor der Tür liegt eine verwaschene Türmatte und rechts von der Tür siehst du eine Klingel.
+    {{ if isLocked }}Du rüttelst kurz an der Klinke und stellst fest, dass sie verschlossen ist.{{ else }}{{ end }}
+
+decoration:
+  id: doormat
+  synonyms: Türmatte, Abtreter, Abtretmatte, Fußabstreicher, Fußabstreifer, Fußabtreter, Fußmatte, Schmutzfangmatte, Schuhabstreifer, Schuhmatte
+  desc: |
+    Die {{ if items.door_key.discovered }}schief vor der Tür liegende {{ end }}Türmatte hat schon bessere Zeiten gesehen. Ein "Welcome Home" Schriftzug lässt sich noch erahnen, aber welche Farbe er ursprünglich trug lässt sich nicht mehr erkennen.
+  traits:
+    - container:
+        contains:
+          - item.door_key
+  interactions:
+    - unter die Matte gucken, gucke unter die Matte, suche unter der Matte, suche unter Matte, schaue unter Matte, gucke unter Matte:
+        - say: Unter der Matte befindet sich ein Schlüssel
+          remove:
+            target: items.door_key
+            modifier: discovered
+            value: true
+
+decoration:
+  synonyms: Klingel, Türklingel, Gong
+  desc: |
+    Eine einfache Türklingel hängt neben der Haustür. Sie besteht aus einem dunklen Plastgehäuse mit einem von der Benutzung leicht glänzenden, schwarzen Knopf.
+  modifiers:
+    - counter: 0
+  interactions:
+    - drücke, drücken, klingeln:
+        outcomes:
+          - if: counter < 4
+            say: |
+              Beherzt drückst du die Klingel, auch wenn du schon weiss†, dass niemand zu Hause ist. Der glänzende Klingelknopf fühlt sich erstaunlich warm unter deinem Finger an.
+              Du wartest eine höfliche Zeit ab aber es kommt niemand um dir zu öffnen.
+            increment: counter
+          - if: counter == 4
+            say: |
+              Getrieben von Starrsinn betätigst du die Klingel ein weiteres mal, diesmal vielleicht etwas zu heftig. Der kleine Knopf verhakt sich im Gehäuse und du findest keinen Weg ihn wieder zu lösen.
+          - if: counter > 4
+            say: Du kannst die Klingel nicht mehr drücken, der Knopf hat sich im Gehäuse verkeilt
+
+item:
+  id: door_key
+  synonyms: Haustürschlüssel
+  desc: |
+    Ein einfacher Schlüssel zum Öffnen der Haustür.
+  modifiers:
+    - coveredBy: decorations.in_front_of_house.doormat
+    - discovered: false

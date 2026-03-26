@@ -1,5 +1,7 @@
 namespace Ifai.ContentParser
 
+open System
+
 
 type ContentKey =
     | SingleKey of string
@@ -57,6 +59,8 @@ type ItemPto = {
     Traits: TraitPto list
     Modifiers: VariablePto list
     Category: ItemCategory
+    NeedsDiscovery: bool // default case is false
+    IsAbstract: bool // default case is false
 }
 
 type ExitPto = {
@@ -71,6 +75,12 @@ type RoomPto = {
     Exits: ExitPto list
     Desc: string
     Variables: VariablePto list
+}
+
+type AdventurePto = {
+    Name: string
+    InitialRoomId: string
+    Language: string
 }
 
 module IndentationTokens =
@@ -191,13 +201,13 @@ module IndentationTokens =
                         match explicitType with
                         | Some t -> t
                         | None ->
-                            match System.Int32.TryParse varValue with
+                            match Int32.TryParse varValue with
                             | true, _ -> "integer"
                             | _ ->
-                                match System.Double.TryParse varValue with
+                                match Double.TryParse varValue with
                                 | true, _ -> "float"
                                 | _ ->
-                                    match System.Boolean.TryParse varValue with
+                                    match Boolean.TryParse varValue with
                                     | true, _ -> "bool"
                                     | _ -> "string"
                     
@@ -405,6 +415,31 @@ module IndentationTokens =
             parseBlock interactionLines
             List.rev interactions
 
+    let toAdventurePto (lines: ContentLine list) : AdventurePto * ContentLine list =
+        let afterAdventureStart =
+            match lines with
+            | ContentLine.ComplexLine cl :: rest when cl.Indentation = 0u && cl.Key = "adventure" -> rest
+            | _ -> failwith "Input must start with an adventure definition"
+
+        let rec getAdventureBlock acc lines =
+            match lines with
+            | [] -> (List.rev acc, [])
+            | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u -> (List.rev acc, lines)
+            | head :: rest -> getAdventureBlock (head :: acc) rest
+
+        let adventureLines, unusedLines = getAdventureBlock [] afterAdventureStart
+        
+        let getValue key (lines: ContentLine list) =
+            lines |> List.tryPick (function
+                | ContentLine.ComplexLine cl when cl.Key = key -> cl.Value
+                | _ -> None)
+        
+        let name = getValue "name" adventureLines |> Option.defaultWith (fun () -> failwith "Cannot create adventure without name")
+        let initialRoomId = getValue "initial_room" adventureLines |> Option.defaultWith (fun () -> failwith "Cannot create adventure without initial room key")
+        let language = getValue "language" adventureLines |> Option.defaultWith (fun () -> failwith "Cannot create adventure without langauge key")
+        { Name = name; InitialRoomId = initialRoomId; Language = language }, unusedLines
+
+
     let toRoomPto (lines: ContentLine list) : RoomPto * ContentLine list =
         let afterRoomStart = 
             match lines with
@@ -487,6 +522,16 @@ module IndentationTokens =
             getValue "synonyms" itemLines 
             |> Option.map (fun s -> s.Split(',') |> Array.toList |> List.map _.Trim())
             |> Option.defaultValue []
+            
+        let isAbstract =
+            getValue "isabstract" itemLines
+            |> Option.map Boolean.Parse
+            |> Option.defaultValue false
+
+        let needsDiscovery =
+            getValue "needsdiscovery" itemLines
+            |> Option.map Boolean.Parse
+            |> Option.defaultValue false
 
         let item = {
             Id = getValue "id" itemLines
@@ -496,6 +541,8 @@ module IndentationTokens =
             Traits = parseTraits itemLines
             Modifiers = parseModifiers itemLines
             Category = category
+            IsAbstract = isAbstract
+            NeedsDiscovery = needsDiscovery
         }
         
         (item, unusedLines)

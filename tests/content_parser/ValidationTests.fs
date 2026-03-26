@@ -5,6 +5,7 @@ open Ifai.ContentParser.Validation
 open Ifai.ContentParser.IndentationMapper
 open Ifai.Lib
 open Ifai.Lib.Content
+open Ifai.Lib.Content.Thing
 open Xunit
 open FsUnit.Xunit
 
@@ -35,6 +36,7 @@ let ``validateIdUniqueness returns Ok when all IDs are unique`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
     let thing2 = { Id = ThingId.create "thing2"
@@ -46,10 +48,12 @@ let ``validateIdUniqueness returns Ok when all IDs are unique`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
-    let content = { Rooms = [(room1, []); (room2, [])]
-                    Things = [(thing1, []); (thing2, [])] }
+    let content = { Adventure = None
+                    Rooms = [(room1, []); (room2, [])]
+                    Things = [(thing1, [], ThingLocation.Nowhere); (thing2, [], ThingLocation.Nowhere)] }
 
     let result = validateIdUniqueness content
     result |> should be (ofCase <@ Result<unit, string list>.Ok () @>)
@@ -73,7 +77,8 @@ let ``validateIdUniqueness returns Error when room IDs are duplicated`` () =
                   OnLeaving = None
                   Environment = RoomEnvironment.``default`` }
 
-    let content = { Rooms = [(room1, []); (room2, [])]
+    let content = { Adventure = None
+                    Rooms = [(room1, []); (room2, [])]
                     Things = [] }
 
     let result = validateIdUniqueness content
@@ -94,6 +99,7 @@ let ``validateIdUniqueness returns Error when thing IDs are duplicated`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
     let thing2 = { Id = ThingId.create "duplicate_thing"
@@ -105,10 +111,12 @@ let ``validateIdUniqueness returns Error when thing IDs are duplicated`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
-    let content = { Rooms = []
-                    Things = [(thing1, []); (thing2, [])] }
+    let content = { Adventure = None
+                    Rooms = []
+                    Things = [(thing1, [], ThingLocation.Nowhere); (thing2, [], ThingLocation.Nowhere)] }
 
     let result = validateIdUniqueness content
     match result with
@@ -136,10 +144,12 @@ let ``validateIdUniqueness returns Error when room and thing IDs collide`` () =
                   LegalOwner = LegalOwner.Nobody
                   Traits = []
                   Interactability = Interactability.All
+                  NeedsDiscovery = false
                   Weight = 0u }
 
-    let content = { Rooms = [(room, [])]
-                    Things = [(thing, [])] }
+    let content = { Adventure = None
+                    Rooms = [(room, [])]
+                    Things = [(thing, [], ThingLocation.Nowhere)] }
 
     let result = validateIdUniqueness content
     match result with
@@ -175,6 +185,7 @@ let ``validateIdUniqueness returns all duplicate IDs`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
     let thing2 = { Id = ThingId.create "dup2"
@@ -186,10 +197,12 @@ let ``validateIdUniqueness returns all duplicate IDs`` () =
                    LegalOwner = LegalOwner.Nobody
                    Traits = []
                    Interactability = Interactability.All
+                   NeedsDiscovery = false
                    Weight = 0u }
 
-    let content = { Rooms = [(room1, []); (room2, [])]
-                    Things = [(thing1, []); (thing2, [])] }
+    let content = { Adventure = None
+                    Rooms = [(room1, []); (room2, [])]
+                    Things = [(thing1, [], ThingLocation.Nowhere); (thing2, [], ThingLocation.Nowhere)] }
 
     let result = validateIdUniqueness content
     match result with
@@ -201,7 +214,7 @@ let ``validateIdUniqueness returns all duplicate IDs`` () =
 
 [<Fact>]
 let ``validateIdUniqueness returns Ok for empty content`` () =
-    let content = { Rooms = []; Things = [] }
+    let content = { Adventure = None; Rooms = []; Things = [] }
 
     let result = validateIdUniqueness content
     match result with
@@ -223,6 +236,7 @@ let ``validateThing finds all parameters`` () =
                   LegalOwner = LegalOwner.Nobody
                   Traits = []
                   Interactability = Interactability.All
+                  NeedsDiscovery = false
                   Weight = 0u }
 
-    (thing, []) |> validateThing |> should be (ofCase <@ Result<unit, string list>.Ok @>)
+    (thing, [], ThingLocation.Nowhere) |> validateThing |> should be (ofCase <@ Result<unit, string list>.Ok @>)

@@ -2,12 +2,19 @@ namespace Ifai.ContentParser
 
 open System
 open System.Linq
+open Ifai.Lib
 
 
 module IndentationMapper =
     open Ifai.Lib
     open Ifai.Lib.Content
     open Ifai.Lib.Shared
+
+    type AdventureRoot = {
+        Name: string
+        InitialRoom: RoomId
+        Language: Language
+    }
     
     let private forceBool (s: string) : bool =
         match s.ToLowerInvariant() with
@@ -135,17 +142,23 @@ module IndentationMapper =
             Thing.Id = id |> ThingId.create
             Thing.Synonyms = item.Synonyms |> List.map toLocalizedText
             Thing.Description = item.Desc |> toLocalizedText
-            Thing.IsAbstract = false
+            Thing.IsAbstract = item.IsAbstract
             Thing.IsPortable = match item.Category with ItemCategory.Item -> true | ItemCategory.Decoration -> false
             Thing.LegalOwner = LegalOwner.Nobody
             Thing.Name = item.Synonyms.First() |> toLocalizedText
             Thing.Traits = item.Traits |> List.collect mapTrait
+            Thing.NeedsDiscovery = item.NeedsDiscovery
 
             // TODO: set interactibility to a meaningful value
             Thing.Interactability = Interactability.All
             // TODO: set interactibility to a meaningful value
             Thing.Weight = 0u
         }, modifiers
+        
+    let mapAdventure (adventure: AdventurePto) : AdventureRoot =
+        { Name = adventure.Name
+          InitialRoom = RoomId.create adventure.InitialRoomId
+          Language = Language.create adventure.Language }
 
     let mapRoom (room: RoomPto) : Room * RoomModifier list =
         let connections =
@@ -172,9 +185,11 @@ module IndentationMapper =
           OnLeaving = None
           Environment = RoomEnvironment.``default`` }, modifiers
 
+    
     type MappedContent = {
         Rooms: (Room * RoomModifier list) list
-        Things: (Thing * ThingModifier list) list
+        Things: (Thing * ThingModifier list * ThingLocation) list
+        Adventure: AdventureRoot option
     }
 
     let mapFullContent (lines: ContentLine list) : MappedContent =
@@ -189,12 +204,23 @@ module IndentationMapper =
                 match currentRoomId with
                 | Some rid ->
                     let itemPto, rest = IndentationTokens.toItemPto remaining
-                    let thingWithMods = mapItem rid itemPto
-                    loop rest { acc with Things = thingWithMods :: acc.Things } (Some rid)
+                    let thing, mods = mapItem rid itemPto
+                    let location = ThingLocation.Room (RoomId.create rid)
+                    loop rest { acc with Things = (thing, mods, location) :: acc.Things } (Some rid)
                 | None -> failwith "Found item/decoration before any room definition"
+            | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u && (cl.Key = "adventure") ->
+                let adventurePto, rest = IndentationTokens.toAdventurePto remaining
+                let adventure = mapAdventure adventurePto
+                loop rest { acc with Adventure = Some adventure } currentRoomId
+                
             | _ :: rest -> loop rest acc currentRoomId
 
-        let result = loop lines { Rooms = []; Things = [] } None
+        let result =
+            loop
+                lines
+                { Rooms = []; Things = []; Adventure = None }
+                None
         { Rooms = List.rev result.Rooms
-          Things = List.rev result.Things }
+          Things = List.rev result.Things
+          Adventure = result.Adventure }
 

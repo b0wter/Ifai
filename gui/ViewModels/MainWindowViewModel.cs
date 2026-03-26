@@ -3,11 +3,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ifai.Gui.Helpers;
 using Ifai.Lib;
+using Ifai.Lib.Content;
+using Microsoft.FSharp.Collections;
 
 #nullable enable
 
@@ -31,15 +34,34 @@ public partial class MainWindowViewModel : ViewModelBase
         Start();
     }
 
+    private Model ParseAdventureFromFolder(string folder)
+    {
+        var result = ContentParser.Content.createWorldFromFolder(folder);
+        if (result.IsError)
+        {
+            throw new ArgumentException(
+                $"Could not parse adventure from folder '{folder}' because: {result.ErrorValue}");
+        }
+        else
+        {
+            var world = result.ResultValue;
+            return InteropWorld.InitializeModel(world, "de", Dummies.Texts.textResources);
+        }
+    }
+
     [RelayCommand]
     private void Start()
     {
+        /*
         var model =
             Dummies.World.init(
                 [],
                 Dummies.Rooms.dummyRoomIds.First(),
                 LanguageModule.create("en"),
                 Dummies.Texts.textResources)!;
+                */
+        var model =
+            ParseAdventureFromFolder("/Users/b0wter/Work/ifai/sample_adventure");
 
         var fileIo = new FileIo();
 

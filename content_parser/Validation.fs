@@ -15,26 +15,26 @@ let validateRoom (room: Room, modifiers: RoomModifier list) : Result<unit, strin
     Ok ()
 
 
-let validateThing (thing: Thing, modifiers: ThingModifier list) : Result<unit, string list> =
+let validateThing (thing: Thing, modifiers: ThingModifier list, location: ThingLocation) : Result<unit, string list> =
     let nameAndDescription = thing.Description.Text + thing.Name.Text
     let parameters =
         System.Text.RegularExpressions.Regex.Matches(nameAndDescription, parametersRegex)
-        |> Seq.map (fun m -> if m.Groups.Count <> 2 then failwith "rekkkkkkkkkkt" else m.Groups[0].Value, m.Groups[1].Value)
+        |> Seq.map _.Value
         |> List.ofSeq
-    
+
     let nonInitializedModifiers =
         parameters
-        |> List.filter (fun (parameter, _) ->
+        |> List.filter (fun parameter ->
             modifiers
             |> List.exists (function ThingModifier.Custom (name, _) -> not <| String.Equals(name |> AttributeId.value, parameter, StringComparison.InvariantCultureIgnoreCase) | _ -> true))
     
-    if not <| nonInitializedModifiers.IsEmpty then Ok ()
+    if nonInitializedModifiers.IsEmpty then Ok ()
     else Error ["Missing"]
 
 
 let validateIdUniqueness (content: MappedContent) : Result<unit, string list> =
     let roomIds = content.Rooms |> List.map (fst >> _.Id)
-    let thingIds = content.Things |> List.map (fst >> _.Id)
+    let thingIds = content.Things |> List.map (fun (t, _, _) -> t.Id)
         
     let allIds = (roomIds |> List.map RoomId.value) @ (thingIds |> List.map ThingId.value)
     let nonUniqueIds = 

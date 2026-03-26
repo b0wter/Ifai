@@ -20,6 +20,10 @@ module AttributeId =
     let value (AttributeId s) = s
 
 
+type IAttributeTranslator =
+    abstract member Translate: unit -> (AttributeId * AttributeValue) list
+
+
 type AttributeOperation =
     | Set of value:AttributeValue
     | Increment of int

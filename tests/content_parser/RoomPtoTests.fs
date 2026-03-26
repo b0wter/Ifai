@@ -40,46 +40,41 @@ There is only one way forward. You feel like not being able to go back."""
     room.Desc.Replace("\r\n", "\n") |> should equal (expectedDesc.Replace("\r\n", "\n"))
 
 [<Fact>]
-let ``Convert whole underground_lake.ifa to RoomPto`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Convert whole in_front_of_house.ifa to RoomPto`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let _, unused = IndentationParser.parse content |> IndentationTokens.toRoomPto
-    // The first unused line should be the 'item:' block start
+    // The first unused line should be the 'decoration:' block start
     match unused |> List.head with
-    | ContentLine.ComplexLine cl -> cl.Key |> should equal "item"
-    | _ -> failwith "Expected item: block"
+    | ContentLine.ComplexLine cl -> cl.Key |> should equal "decoration"
+    | _ -> failwith "Expected decoration: block"
     
 
 [<Fact>]
 let ``toRoomPto works with actual file`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let input = File.ReadAllText(path)
     let lines = IndentationParser.parse input
     let room, unused = IndentationTokens.toRoomPto lines
     
-    room.Id |> should equal "underground_lake"
+    room.Id |> should equal "in_front_of_house"
     
-    let expectedDesc = """You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.
-{item:sign}
-There is only one way forward. You feel like not being able to go back."""
+    let expectedDesc = """Du stehst in einem adretten Garten vor einem alten Haus. Der Wind weht leicht durch zwei kleine Kirschbäume und kitzelt dich an der Nase.
+Hinter dir, in südlicher Richtung, hörst du das Gartentor im Wind schlagen. Vor dir erhebt sich ein etwas in die Jahre gekommenes Haus.
+Die Fenster sind liebevoll dekoriert, wenn auch ein wenig schmuddelig."""
     room.Desc |> should equal expectedDesc
     
+    // Check exits
+    room.Exits.Length |> should equal 1
+    room.Exits[0].Direction |> should contain "haustür"
+    room.Exits[0].ToId |> should equal "rooms.hallway"
+    room.Exits[0].Via |> should equal (Some "decorations.in_front_of_house.door")
     
-    // We expect item: (0), id: (2), name: (2), [empty line is skipped by parser], decoration: (0), id: (2)
-    // Actually IndentationParser.parse skips empty lines.
-    unused.Length |> should be (greaterThan 0)
+    // Check interactions
+    room.Desc.Contains("Du stehst in einem adretten Garten") |> should be True
     
-    match unused[0] with
-    | ContentLine.ComplexLine cl -> cl.Key |> should equal "item"
-    | _ -> failwith "Expected item line"
-
-    // Check that decoration is also there
-    let decorationLine = unused |> List.find (function 
-        | ContentLine.ComplexLine cl when cl.Key = "decoration" -> true 
-        | _ -> false)
-    match decorationLine with
-    | ContentLine.ComplexLine cl -> cl.Indentation |> should equal 0u
-    | _ -> failwith "Expected decoration line"    
+    // Check for variables/modifiers if any (in_front_of_house.ifa doesn't have any for the room itself, but let's check it's empty)
+    room.Variables.Length |> should equal 0
     
 
 [<Fact>]

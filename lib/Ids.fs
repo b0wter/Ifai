@@ -1,6 +1,6 @@
 namespace Ifai.Lib
 
-type RoomId = private RoomId of string
+type RoomId = RoomId of string
 module RoomId =
     let create g = g |> RoomId 
     let value (RoomId r) = r
@@ -24,3 +24,18 @@ type SpellInstanceId = SpellInstanceId of string
 module SpellInstanceId =
     let create id = id |> SpellInstanceId
     let value (SpellInstanceId i) = i
+
+type MetaId =
+    | WrappedRoomId of RoomId
+    | WrappedCharacterId of CharacterId
+    | WrappedSpellId of SpellId
+    | WrappedThingId of ThingId
+    | WrappedSpellInstanceId of SpellInstanceId
+module MetaId =
+    let value (m: MetaId) =
+        match m with
+        | WrappedRoomId r -> r |> RoomId.value
+        | WrappedCharacterId c -> c |> CharacterId.value
+        | WrappedSpellId s -> s |> SpellId.value
+        | WrappedThingId t -> t |> ThingId.value
+        | WrappedSpellInstanceId i -> i |> SpellInstanceId.value

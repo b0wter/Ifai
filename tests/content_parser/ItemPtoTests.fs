@@ -183,32 +183,31 @@ let ``Convert ItemPto with complex interactions from underground_lake`` () =
     unlockInter.Outcomes[2].Actions[0].Arguments |> should equal "You cannot unlock the door without the key"
 
 [<Fact>]
-let ``Extract key item with interactions from underground_lake.ifa`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Extract key item with interactions from in_front_of_house.ifa`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let lines = IndentationParser.parse content
     
-    // Recursive helper to find the pebble item
-    let rec findPebble l =
+    // Recursive helper to find the doormat item
+    let rec findDoormat l =
         match l with
-        | [] -> failwith "Pebble not found"
-        | ContentLine.ComplexLine cl :: _ when cl.Key = "item" && cl.Indentation = 0u ->
+        | [] -> failwith "Doormat not found"
+        | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u ->
             let item, rest = IndentationTokens.toItemPto l
-            if item.Synonyms |> List.contains "pebble" then item else findPebble rest
-        | _ :: rest -> findPebble rest
+            if item.Id = Some "doormat" then item else findDoormat rest
+        | _ :: rest -> findDoormat rest
         
-    let pebble = findPebble lines
+    let doormat = findDoormat lines
     
-    pebble.Interactions.Length |> should equal 1
-    let inter = pebble.Interactions[0]
-    inter.Name |> should equal "throw"
-    inter.Synonyms |> should equal ["toss"]
-    inter.Outcomes.Length |> should equal 3
+    doormat.Interactions.Length |> should equal 1
+    let inter = doormat.Interactions[0]
+    inter.Name |> should equal "unter die Matte gucken"
+    inter.Synonyms |> should equal ["gucke unter die Matte"; "suche unter der Matte"; "suche unter Matte"; "schaue unter Matte"; "gucke unter Matte"]
+    inter.Outcomes.Length |> should equal 1
     
-    // First outcome: target: decorations.underground_lake.lake
-    inter.Outcomes[0].Actions.Length |> should equal 4
-    inter.Outcomes[0].Actions |> List.exists (fun a -> a.Operation = "target" && a.Arguments = "decorations.underground_lake.lake") |> should be True
-    inter.Outcomes[0].Actions |> List.exists (fun a -> a.Operation = "destroy" && a.Arguments = "this") |> should be True
+    inter.Outcomes[0].Actions.Length |> should equal 5
+    inter.Outcomes[0].Actions |> List.exists (fun a -> a.Operation = "say" && a.Arguments = "Unter der Matte befindet sich ein Schlüssel") |> should be True
+    inter.Outcomes[0].Actions |> List.exists (fun a -> a.Operation = "remove" && a.Arguments = "") |> should be True
 
 [<Fact>]
 let ``Convert ItemPto with traits`` () =
@@ -251,8 +250,8 @@ let ``Convert ItemPto with multiple traits and no properties`` () =
     item.Traits[1].Properties.Length |> should equal 0
 
 [<Fact>]
-let ``Extract wooden_door with traits from underground_lake.ifa`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Extract haustür with traits from in_front_of_house.ifa`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let lines = IndentationParser.parse content
     
@@ -261,7 +260,7 @@ let ``Extract wooden_door with traits from underground_lake.ifa`` () =
         | [] -> failwith "Door not found"
         | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u ->
             let item, rest = IndentationTokens.toItemPto l
-            if item.Id = Some "wooden_door" then item else findDoor rest
+            if item.Synonyms |> List.contains "haustür" then item else findDoor rest
         | _ :: rest -> findDoor rest
         
     let door = findDoor lines
@@ -329,55 +328,54 @@ let ``Inferred types for variables`` () =
     someBool.Type |> should equal "bool"
 
 [<Fact>]
-let ``Extract sign with variables from underground_lake.ifa`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Extract door_key with variables from in_front_of_house.ifa`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let lines = IndentationParser.parse content
     
-    let rec findSign l =
+    let rec findKey l =
         match l with
-        | [] -> failwith "Sign not found"
-        | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u ->
+        | [] -> failwith "Key not found"
+        | ContentLine.ComplexLine cl :: _ when cl.Key = "item" && cl.Indentation = 0u ->
             let item, rest = IndentationTokens.toItemPto l
-            if item.Id = Some "sign" then item else findSign rest
-        | _ :: rest -> findSign rest
+            if item.Id = Some "door_key" then item else findKey rest
+        | _ :: rest -> findKey rest
         
-    let sign = findSign lines
+    let key = findKey lines
     
-    sign.Modifiers.Length |> should equal 3
-    sign.Modifiers |> List.exists (fun v -> v.Name = "isDown" && v.Value = "false") |> should be True
-    sign.Modifiers |> List.exists (fun v -> v.Name = "isBroken" && v.Value = "false") |> should be True
-    sign.Modifiers |> List.exists (fun v -> v.Name = "text" && v.Value = "\"The lake has strong underwater currents\"") |> should be True
+    key.Modifiers.Length |> should equal 2
+    key.Modifiers |> List.exists (fun v -> v.Name = "coveredBy" && v.Value = "decorations.in_front_of_house.doormat") |> should be True
+    key.Modifiers |> List.exists (fun v -> v.Name = "discovered" && v.Value = "false") |> should be True
 
 [<Fact>]
-let ``Extract second item from underground_lake.ifa`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Extract second decoration from in_front_of_house.ifa`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let lines = IndentationParser.parse content
     
     // First, consume the room
     let room, linesAfterRoom = IndentationTokens.toRoomPto lines
-    room.Id |> should equal "underground_lake"
+    room.Id |> should equal "in_front_of_house"
     
-    // Next should be an item
+    // Next should be a decoration
     let item1, linesAfterItem1 = IndentationTokens.toItemPto linesAfterRoom
-    item1.Synonyms |> should contain "pebble"
+    item1.Synonyms |> should contain "Gartentor"
     
-    // Skip some lines until the next item
-    let rec findNextItem l =
+    // Skip some lines until the next decoration
+    let rec findNextDecoration l =
         match l with
-        | [] -> failwith "No more items"
-        | ContentLine.ComplexLine cl :: _ when cl.Key = "item" && cl.Indentation = 0u -> l
-        | _ :: rest -> findNextItem rest
+        | [] -> failwith "No more decorations"
+        | ContentLine.ComplexLine cl :: _ when cl.Key = "decoration" && cl.Indentation = 0u -> l
+        | _ :: rest -> findNextDecoration rest
         
-    let nextItemLines = findNextItem linesAfterItem1
+    let nextItemLines = findNextDecoration linesAfterItem1
     let item2, _ = IndentationTokens.toItemPto nextItemLines
-    item2.Synonyms |> List.contains "key" |> should be True
-    item2.Desc.Contains("A small iron key") |> should be True
+    item2.Synonyms |> List.contains "Himmel" |> should be True
+    item2.Desc.Contains("Graue Schlieren zieren den Himmel") |> should be True
 
 [<Fact>]
-let ``Extract all items and decorations from underground_lake.ifa`` () =
-    let path = Path.Combine("TestData", "underground_lake.ifa")
+let ``Extract all items and decorations from in_front_of_house.ifa`` () =
+    let path = Path.Combine("TestData", "in_front_of_house.ifa")
     let content = File.ReadAllText(path)
     let lines = IndentationParser.parse content
     
@@ -396,7 +394,7 @@ let ``Extract all items and decorations from underground_lake.ifa`` () =
     let allPto = extractAll linesAfterRoom []
     
     // For each ItemPto, map it to a Thing and ThingModifier list
-    let thingsWithModifiers = allPto |> List.map (IndentationMapper.mapItem "underground_lake")
+    let thingsWithModifiers = allPto |> List.map (IndentationMapper.mapItem "in_front_of_house")
     let things = thingsWithModifiers |> List.map fst
     
     things.Length |> should equal 10
@@ -420,64 +418,66 @@ let ``Extract all items and decorations from underground_lake.ifa`` () =
         let pair = thingsWithModifiers |> List.find (fun (t, _) -> t.Id = thing.Id)
         snd pair
 
-    // 1. pebble (item)
-    let pebble = findThingBySynonym "pebble"
-    pebble.IsPortable |> should be True
-    pebble.Synonyms |> List.map _.Text |> should contain "pebble"
-    pebble.Synonyms |> List.map _.Text |> should contain "stone"
-    pebble.Synonyms |> List.map _.Text |> should contain "small stone"
-    pebble.Description.Text.Contains("A pebble that nicely fits into your palm") |> should be True
+    // 1. Gartentor (decoration)
+    let tor = findThingBySynonym "Gartentor"
+    tor.Id.ToString().Contains("decorations.in_front_of_house.Gartentor") |> should be True
+    tor.IsPortable |> should be False
+    tor.Synonyms |> List.map _.Text |> should contain "Gartentür"
+    tor.Description.Text.Contains("Das Gartentor hängt ein wenig schief") |> should be True
 
-    // 2. ground (decoration)
-    let ground = findThingBySynonym "ground"
-    ground.IsPortable |> should be False
-    ground.Synonyms |> List.map _.Text |> should contain "ground"
-    ground.Synonyms |> List.map _.Text |> should contain "floor"
+    // 2. Himmel (decoration)
+    let himmel = findThingBySynonym "Himmel"
+    himmel.Id.ToString().Contains("decorations.in_front_of_house.Himmel") |> should be True
+    himmel.Description.Text.Contains("Graue Schlieren zieren den Himmel") |> should be True
 
-    // 3. glint (decoration)
-    let glint = findThingBySynonym "glint"
-    glint.Synonyms |> List.map _.Text |> should contain "glint"
-    glint.Description.Text.Contains("Hidden among the pebbles lies a metallic key") |> should be True
+    // 3. Sonne (decoration)
+    let sonne = findThingBySynonym "Sonne"
+    sonne.Id.ToString().Contains("decorations.in_front_of_house.Sonne") |> should be True
+    sonne.Description.Text.Contains("Die Sonne ist kaum hinter den Wolken zu erkennen") |> should be True
 
-    // 4. key (item)
-    let key = findThingBySynonym "key"
-    key.IsPortable |> should be True
-    key.Synonyms |> List.map _.Text |> should contain "key"
-    key.Description.Text.Contains("A small iron key") |> should be True
+    // 4. weg (decoration)
+    let weg = findThingBySynonym "weg"
+    weg.Id.ToString().Contains("decorations.in_front_of_house.weg") |> should be True
+    weg.Synonyms |> List.map _.Text |> should contain "gartenweg"
+    weg.Description.Text.Contains("knirscht ein alter Schotterweg") |> should be True
 
-    // 5. giant_rock (decoration)
-    let giantRock = findThingById "decorations.underground_lake.giant_rock"
-    giantRock.Synonyms |> List.map _.Text |> should contain "giant rock"
-    giantRock.Description.Text.Contains("A giant rock lies in a corner of the room") |> should be True
+    // 5. Garten (decoration)
+    let garten = findThingBySynonym "Garten"
+    garten.Id.ToString().Contains("decorations.in_front_of_house.Garten") |> should be True
+    garten.Synonyms |> List.map _.Text |> should contain "Gras"
+    garten.Description.Text.Contains("Pflege mit viel Elan begonnen") |> should be True
 
-    // 6. wooden_door (decoration)
-    let door = findThingById "decorations.underground_lake.wooden_door"
-    door.Traits.Length |> should be (greaterThan 0)
-    let isLocked = door.Traits |> List.choose (function Lockable l -> Some l.IsLocked | _ -> None) |> List.tryHead
+    // 6. baum (decoration)
+    let baum = findThingBySynonym "baum"
+    baum.Id.ToString().Contains("decorations.in_front_of_house.baum") |> should be True
+    baum.Synonyms |> List.map _.Text |> should contain "kirschbäume"
+    baum.Description.Text.Contains("Die Kirschbäume sind klein und knorrig") |> should be True
+
+    // 7. haustür (decoration)
+    let tuer = findThingBySynonym "haustür"
+    tuer.Id.ToString().Contains("decorations.in_front_of_house.haustür") |> should be True
+    tuer.Traits.Length |> should be (greaterThan 0)
+    let isLocked = tuer.Traits |> List.choose (function Lockable l -> Some l.IsLocked | _ -> None) |> List.tryHead
     isLocked |> should equal (Some true)
-    let isOpen = door.Traits |> List.choose (function Openable o -> Some o.IsOpen | _ -> None) |> List.tryHead
-    isOpen |> should equal (Some false)
+    tuer.Description.Text.Contains("Die Haustür ist aus altem Holz") |> should be True
 
-    // 7. torch (item)
-    let torch = findThingBySynonym "torch"
-    torch.IsPortable |> should be True
-    let torchMods = findModifiersByThing torch
-    torchMods |> List.exists (function ThingModifier.Custom (AttributeId "isLit", AttributeValue.Bool false) -> true | _ -> false) |> should be True
-    torchMods |> List.exists (function ThingModifier.Custom (AttributeId "lifetime", AttributeValue.Float (123.0, _, _)) -> true | _ -> false) |> should be True
-    torchMods |> List.exists (function ThingModifier.Custom (AttributeId "strength", AttributeValue.UInt (100u, 1u, 100u)) -> true | _ -> false) |> should be True
+    // 8. doormat (decoration)
+    let matte = findThingById "decorations.in_front_of_house.doormat"
+    matte.Synonyms |> List.map _.Text |> should contain "Türmatte"
+    matte.Description.Text.Contains("Die {{ if items.door_key.discovered }}schief vor der Tür liegende {{ end }}Türmatte hat schon bessere Zeiten gesehen") |> should be True
+    matte.Traits |> List.exists (function Container _ -> true | _ -> false) |> should be True
 
-    // 8. bush (decoration)
-    let bush = findThingBySynonym "bush"
-    bush.Synonyms |> List.map _.Text |> should contain "bush"
-    bush.Description.Text.Contains("The bushes grow thick") |> should be True
+    // 9. Klingel (decoration)
+    let klingel = findThingBySynonym "Klingel"
+    klingel.Id.ToString().Contains("decorations.in_front_of_house.Klingel") |> should be True
+    let klingelMods = findModifiersByThing klingel
+    klingelMods |> List.exists (function ThingModifier.Custom (AttributeId "counter", AttributeValue.Int (0, _, _)) -> true | _ -> false) |> should be True
+    klingel.Description.Text.Contains("Eine einfache Türklingel hängt neben der Haustür") |> should be True
 
-    // 9. lake (decoration)
-    let lake = findThingBySynonym "lake"
-    lake.Synonyms |> List.map _.Text |> should contain "lake"
-    lake.Description.Text.Contains("The lakes lies silently") |> should be True
-
-    // 10. sign (decoration)
-    let sign = findThingById "decorations.underground_lake.sign"
-    let signMods = findModifiersByThing sign
-    signMods |> List.exists (function ThingModifier.Custom (AttributeId "isDown", AttributeValue.Bool false) -> true | _ -> false) |> should be True
-    signMods |> List.exists (function ThingModifier.Custom (AttributeId "text", AttributeValue.String "\"The lake has strong underwater currents\"") -> true | _ -> false) |> should be True
+    // 10. door_key (item)
+    let key = findThingById "items.door_key"
+    key.IsPortable |> should be True
+    key.Description.Text.Contains("Ein einfacher Schlüssel zum Öffnen der Haustür") |> should be True
+    let keyMods = findModifiersByThing key
+    keyMods |> List.exists (function ThingModifier.Custom (AttributeId "discovered", AttributeValue.Bool false) -> true | _ -> false) |> should be True
+    keyMods |> List.exists (function ThingModifier.Custom (AttributeId "coveredBy", AttributeValue.String "decorations.in_front_of_house.doormat") -> true | _ -> false) |> should be True
