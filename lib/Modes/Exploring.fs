@@ -102,7 +102,7 @@ let private german =
     
 let builtIns =
     [ Language.create "en", english
-      Language.create "ger", german
+      Language.create "de", german
     ] |> Map.ofList
 
 

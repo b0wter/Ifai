@@ -27,7 +27,7 @@ let (|InTransitioning|_|) = function
 
 
 let mapStepResultToGlobalResult<'state, 'event> (modeMap: 'state -> GameMode) (eventMap: 'event -> Event) (model: Model) (r: StepResult<'state, 'event>) : GlobalResult =
-    let newGameMode = (r.State |> modeMap) :: model.GameMode.Tail
+    let newGameMode = (r.State |> modeMap) :: (if model.GameMode.IsEmpty then [] else model.GameMode.Tail)
     GlobalResult.init { model with GameMode = newGameMode; World = r.World }
     |> GlobalResult.withRuntime (r.Runtime |> RuntimeAction.map eventMap)
     |> GlobalResult.withRender r.Render
@@ -53,11 +53,13 @@ let update (model: Model) (event: Event) : GlobalResult =
         // Other input is delegated to the current game mode
         | None ->
             let parser =
-                match model.GameMode.Head with
-                | GameMode.Exploring _     -> Parsing.ParseExploringInput (model.Language, i)
-                | GameMode.Saving _        -> Parsing.ParseSavingInput    (model.Language, i)
-                | GameMode.Loading _       -> Parsing.ParseLoadingInput   (model.Language, i)
-                | GameMode.Transitioning _ -> Parsing.ParseTransitioningInput (model.Language, i)
+                if model.GameMode.IsEmpty then failwith "Cannot parse input while in empty mode"
+                else
+                    match model.GameMode.Head with
+                    | GameMode.Exploring _     -> Parsing.ParseExploringInput (model.Language, i)
+                    | GameMode.Saving _        -> Parsing.ParseSavingInput    (model.Language, i)
+                    | GameMode.Loading _       -> Parsing.ParseLoadingInput   (model.Language, i)
+                    | GameMode.Transitioning _ -> Parsing.ParseTransitioningInput (model.Language, i)
 
             GlobalResult.init model
             |> GlobalResult.withRuntime (RuntimeAction.Parsing parser)
@@ -205,7 +207,7 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         RuntimeAction.Nothing,
         RenderAction.Nothing
     | Finished ->
-        { model with GameMode = model.GameMode.Tail },
+        { model with GameMode = if model.GameMode.IsEmpty then [] else model.GameMode.Tail },
         RuntimeAction.Nothing,
         RenderAction.Nothing
     | StartExploring ->
@@ -285,7 +287,7 @@ let run (fileIo: IFileIO) (model: Model) : Engine =
                     
                     do sendEngineMessage (EngineMessage.DebugOutputResult (result, event))
                     
-                    match result.Render |> render model.TextResources model.Language with
+                    match result.Render |> render result.Model.TextResources result.Model.Language with
                     | Some renderable -> renderable |> sendEngineMessage
                     | _ -> ()
 

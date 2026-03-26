@@ -218,7 +218,7 @@ module Text =
         let getMapper (key: ParameterKey) =
             formatters |> Map.tryFind key |> Option.defaultValue Parameters.stringify
         parameters
-        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace(key |> ParameterKey.value, param |> (key |> getMapper))) localizedText.Text
+        |> Map.fold (fun (acc: string) (key: ParameterKey) (param: Parameter) -> acc.Replace($"{{%s{key |> ParameterKey.value}}}", param |> (key |> getMapper))) localizedText.Text
             
             
     let mergeParameters parameters (text: LocalizedText) : Result<DisplayableText, DisplayableText> =
