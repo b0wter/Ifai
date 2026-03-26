@@ -325,7 +325,7 @@ let run (fileIo: IFileIO) (model: Model) : Engine =
                             |> runAction
                             |> Option.iter inbox.Post
                         
-                        match renderAction |> render model.TextResources model.Language with
+                        match renderAction |> render newModel.TextResources model.Language with
                         | Some renderable -> renderable |> sendEngineMessage
                         | None -> ()
 
@@ -334,9 +334,7 @@ let run (fileIo: IFileIO) (model: Model) : Engine =
                         return! loop currentModel None
             with
             | exn ->
-                do printfn $"Error while running command: %s{exn.Message}"
-                do Console.ForegroundColor <- ConsoleColor.Yellow
-                do printfn $"%s{exn.StackTrace}"
+                do (EngineMessage.DebugOutputMessage $"Error while running command: %s{exn.Message}%s{Environment.NewLine}%s{exn.StackTrace}") |> sendEngineMessage
                 do cts.Cancel ()
                 return ()
         }

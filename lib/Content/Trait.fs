@@ -36,6 +36,7 @@ type Trait =
     | Lockable of Lockable
     | Passage of Passage
     | Container of Container
+    | LightSource of LightSource
     interface IHaveTraitParameters with
         member this.AsMap =
             match this with
@@ -51,7 +52,11 @@ type Trait =
                 |> Map.add (nameof(c.MaximumWeight)) (c.MaximumWeight :> obj)
             | Passage _ ->
                 Map.empty
-    interface Shared.IAttributeTranslator with
+            | LightSource l ->
+                Map.empty
+                |> Map.add (nameof(l.Brightness)) (l.Brightness :> obj)
+
+    interface IAttributeTranslator with
         member this.Translate() =
             match this with
             | Openable o ->
@@ -60,3 +65,4 @@ type Trait =
                 (AttributeId.create "isLocked", (l.IsLocked |> AttributeValue.Bool)) |> List.singleton
             | Passage _ -> []
             | Container _ -> []
+            | LightSource _ -> []

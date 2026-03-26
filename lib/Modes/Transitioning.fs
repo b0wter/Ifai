@@ -53,10 +53,8 @@ let activate (parameters: ToTransitioningParameters) : ActivationResult<Transiti
     let phase =
         match parameters.LeavingMode, parameters.EnteringMode with
         | LeavingRoomMode.Skip, SkipAll -> TransitioningPhase.Finished
-        | LeavingRoomMode.Skip, EventOnly
-        | LeavingRoomMode.Skip, EventOnly -> TransitioningPhase.Entering
         | LeavingRoomMode.Skip, Full
-        | LeavingRoomMode.Skip, EventOnly -> TransitioningPhase.Entering
+        | LeavingRoomMode.Skip, EventOnly
         | LeavingRoomMode.Skip, SkipEvent -> TransitioningPhase.Entering
         | LeavingRoomMode.Full, _ -> TransitioningPhase.Leaving
 
