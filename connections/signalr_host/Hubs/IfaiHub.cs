@@ -13,11 +13,11 @@ public class IfaiHub : Hub
         _gameEngineManager = gameEngineManager;
     }
 
-    public async Task SendMessage(string user, string message)
+    public Task SendMessage(string user, string message)
     {
         _logger.LogInformation("Received message from {User}: {Message}", user, message);
         _gameEngineManager.SendCommand(Context.ConnectionId, message);
-        await Clients.Caller.SendAsync("ReceiveMessage", user, message);
+        return Task.CompletedTask;
     }
 
     public override async Task OnConnectedAsync()

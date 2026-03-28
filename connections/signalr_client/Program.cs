@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 
 Console.WriteLine("Ifai.SignalR.Client is starting...");
 
+var exitRequested = new TaskCompletionSource();
+
 var connection = new HubConnectionBuilder()
     .WithUrl("http://localhost:5188/ifaiHub")
     .WithAutomaticReconnect()
@@ -13,11 +15,6 @@ var connection = new HubConnectionBuilder()
         options.PayloadSerializerOptions.Converters.Add(new JsonFSharpConverter());
     })
     .Build();
-
-connection.On<string, string>("ReceiveMessage", (user, message) =>
-{
-    Console.WriteLine($"[{user}]: {message}");
-});
 
 connection.On<string, string>("NewHistoryItem", (text, style) =>
 {
@@ -31,10 +28,9 @@ connection.On<string, string>("NewHistoryItem", (text, style) =>
             "Regular" => originalColor,
             "Emphasized" => ConsoleColor.DarkGreen,
             "Hint" => ConsoleColor.DarkGray,
-            _ => throw new ArgumentException($"Style {style} is not supported.", nameof(style))
+            _ => ConsoleColor.Yellow
         };
 
-        // Message in style color
         Console.ForegroundColor = styleColor;
         Console.WriteLine(text);
     }
@@ -44,13 +40,6 @@ connection.On<string, string>("NewHistoryItem", (text, style) =>
     }
 });
 
-/*
-connection.On<object>("UpdatedGameState", (gameState) =>
-{
-    Console.WriteLine($"[Engine]: Game state updated.");
-});
-*/
-
 connection.On("ClearScreen", () =>
 {
     Console.Clear();
@@ -59,6 +48,12 @@ connection.On("ClearScreen", () =>
 connection.On<string>("DebugMessage", (message) =>
 {
     Console.WriteLine($"[Debug]: {message}");
+});
+
+connection.On("RequestQuit", () =>
+{
+    Console.WriteLine("Game has ended.");
+    exitRequested.TrySetResult();
 });
 
 try
@@ -76,8 +71,16 @@ Console.WriteLine("Type a message and press Enter to send (or 'exit' to quit):")
 
 while (true)
 {
-    var message = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(message) || message.ToLower() == "exit")
+    var readTask = Task.Run(() => Console.ReadLine());
+    var completed = await Task.WhenAny(readTask, exitRequested.Task);
+
+    if (completed == exitRequested.Task)
+    {
+        break;
+    }
+
+    var message = await readTask;
+    if (string.IsNullOrWhiteSpace(message) || message.Equals("exit", StringComparison.OrdinalIgnoreCase))
     {
         break;
     }

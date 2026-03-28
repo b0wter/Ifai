@@ -5,17 +5,24 @@ using System.Collections.Concurrent;
 
 namespace Ifai.SignalR.Host;
 
-public class GameEngineManager
+public class GameEngineManager : IDisposable
 {
     private readonly IHubContext<IfaiHub> _hubContext;
-    private readonly ConcurrentDictionary<string, (Engine Engine, IDisposable Subscription)> _engines = new();
+    private readonly ILogger<GameEngineManager> _logger;
+    private readonly ConcurrentDictionary<string, Lazy<(Engine Engine, IDisposable Subscription)>> _engines = new();
 
-    public GameEngineManager(IHubContext<IfaiHub> hubContext)
+    public GameEngineManager(IHubContext<IfaiHub> hubContext, ILogger<GameEngineManager> logger)
     {
         _hubContext = hubContext;
+        _logger = logger;
     }
 
-    public void StopAll()
+    public void Dispose()
+    {
+        StopAll();
+    }
+
+    private void StopAll()
     {
         foreach (var connectionId in _engines.Keys)
         {
@@ -25,44 +32,61 @@ public class GameEngineManager
 
     public void StartGame(string connectionId)
     {
-        if (_engines.ContainsKey(connectionId))
+        var lazy = _engines.GetOrAdd(connectionId, id => new Lazy<(Engine, IDisposable)>(() =>
         {
-            return;
-        }
+            var fileIo = new SimpleFileIo();
+            var language = LanguageModule.create("en");
+            var model = Dummies.World.init(
+                Dummies.Rooms.dummyRooms(language),
+                Dummies.Rooms.dummyRoomIds.First(),
+                LanguageModule.create("en"),
+                Dummies.Texts.textResources);
 
-        var fileIo = new SimpleFileIo();
-        var language = LanguageModule.create("en");
-        var model = Dummies.World.init(
-            Dummies.Rooms.dummyRooms(language),
-            Dummies.Rooms.dummyRoomIds.First(), 
-            LanguageModule.create("en"), 
-            Dummies.Texts.textResources);
+            var engine = Runtime.run(fileIo, model);
+            var subscription = engine.Output.Subscribe(new AnonymousObserver<EngineMessageInfo>(
+                onNext: msg => OnEngineMessage(id, msg),
+                onError: ex => _logger.LogError(ex, "Engine observable error for connection {ConnectionId}", id)));
 
-        var engine = Runtime.run(fileIo, model);
-        var subscription = engine.Output.Subscribe(new AnonymousObserver<EngineMessageInfo>(msg => OnEngineMessage(connectionId, msg)));
-        
-        _engines.TryAdd(connectionId, (engine, subscription));
+            return (engine, subscription);
+        }));
+        _ = lazy.Value;
     }
 
     public void DisposeGame(string connectionId)
     {
-        if (_engines.TryRemove(connectionId, out var pair))
+        if (_engines.TryRemove(connectionId, out var lazy) && lazy.IsValueCreated)
         {
-            pair.Engine.CancellationTokenSource.Cancel();
+            var pair = lazy.Value;
+            try { pair.Engine.CancellationTokenSource.Cancel(); } catch (ObjectDisposedException) { }
+            try { pair.Engine.CancellationTokenSource.Dispose(); } catch (ObjectDisposedException) { }
             pair.Subscription.Dispose();
         }
     }
 
     private void OnEngineMessage(string connectionId, EngineMessageInfo messageInfo)
     {
-        HandleEngineMessage(connectionId, messageInfo).Wait();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await HandleEngineMessage(connectionId, messageInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error handling engine message for connection {ConnectionId}", connectionId);
+            }
+        });
     }
 
     public void SendCommand(string connectionId, string input)
     {
-        if (_engines.TryGetValue(connectionId, out var pair))
+        if (_engines.TryGetValue(connectionId, out var lazy) && lazy.IsValueCreated)
         {
-            pair.Engine.Input.Send(EngineCommand.NewUserInput(input));
+            lazy.Value.Engine.Input.Send(EngineCommand.NewUserInput(input));
+        }
+        else
+        {
+            _logger.LogWarning("SendCommand called for unknown connection {ConnectionId}", connectionId);
         }
     }
 
@@ -80,7 +104,7 @@ public class GameEngineManager
                 await _hubContext.Clients.Client(connectionId).SendAsync("ClearScreen");
                 break;
             case DebugOutputResultMessage msg:
-                // Optional: Send debug info to clients if needed
+                await _hubContext.Clients.Client(connectionId).SendAsync("DebugMessage", $"{msg.Event}");
                 break;
             case DebugOutputMessageMessage msg:
                 await _hubContext.Clients.Client(connectionId).SendAsync("DebugMessage", msg.Message);
@@ -95,13 +119,16 @@ public class GameEngineManager
                     await HandleEngineMessage(connectionId, innerMsg);
                 }
                 break;
+            default:
+                _logger.LogWarning("Unhandled engine message type {MessageType} for connection {ConnectionId}", message.GetType().Name, connectionId);
+                break;
         }
     }
 
-    private class AnonymousObserver<T>(Action<T> onNext) : IObserver<T>
+    private class AnonymousObserver<T>(Action<T> onNext, Action<Exception> onError) : IObserver<T>
     {
         public void OnCompleted() { }
-        public void OnError(Exception error) { }
+        public void OnError(Exception error) => onError(error);
         public void OnNext(T value) => onNext(value);
     }
 
@@ -109,12 +136,12 @@ public class GameEngineManager
     {
         public WriteFileResult WriteFile(string filename, bool allowOverwrite, string content)
         {
-            return WriteFileResult.NewFailure("Not implemented");
+            return WriteFileResult.NewFailure("Saving is not available over SignalR connections.");
         }
 
         public Microsoft.FSharp.Core.FSharpResult<string, string> Serialize(object obj)
         {
-            return Microsoft.FSharp.Core.FSharpResult<string, string>.NewError("Not implemented");
+            return Microsoft.FSharp.Core.FSharpResult<string, string>.NewError("Saving is not available over SignalR connections.");
         }
     }
 }

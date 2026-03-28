@@ -4,8 +4,6 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://localhost:5188");
-
 builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
     {
