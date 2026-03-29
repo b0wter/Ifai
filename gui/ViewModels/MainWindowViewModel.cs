@@ -3,14 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Threading;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Ifai.Gui.Helpers;
 using Ifai.Lib;
 using Ifai.Lib.Content;
-using Microsoft.FSharp.Collections;
 
 #nullable enable
 
@@ -22,6 +19,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty] private string _roomDescription = string.Empty;
     [ObservableProperty] private string _roomName = string.Empty;
     [ObservableProperty] private List<string> _things = [];
+    [ObservableProperty] private bool _isAdventureLoaded;
+    [ObservableProperty] private string _errorMessage = string.Empty;
 
     public System.Collections.ObjectModel.ObservableCollection<NewHistoryItemMessage> History { get; } = new();
     public System.Collections.ObjectModel.ObservableCollection<string> DebugMessages { get; } = new();
@@ -29,48 +28,39 @@ public partial class MainWindowViewModel : ViewModelBase
     private Engine? _engine;
     private IDisposable? _outputSubscription;
 
-    public MainWindowViewModel()
+    public void LoadAdventure(string folderPath)
     {
-        Start();
-    }
+        // Clean up any previously running engine
+        _outputSubscription?.Dispose();
+        _engine?.CancellationTokenSource.Cancel();
+        History.Clear();
+        DebugMessages.Clear();
+        ErrorMessage = string.Empty;
 
-    private Model ParseAdventureFromFolder(string folder)
-    {
-        var result = ContentParser.Content.createWorldFromFolder(folder);
-        if (result.IsError)
+        try
         {
-            throw new ArgumentException(
-                $"Could not parse adventure from folder '{folder}' because: {result.ErrorValue}");
+            var result = ContentParser.Content.createWorldFromFolder(folderPath);
+            if (result.IsError)
+            {
+                ErrorMessage = $"Could not parse adventure: {result.ErrorValue}";
+                IsAdventureLoaded = false;
+                return;
+            }
+
+            // TODO: this should load actual text resources not the dummies
+            var model = InteropWorld.InitializeModel(result.ResultValue, "de", Dummies.Texts.textResources);
+            var fileIo = new FileIo();
+
+            _engine = Runtime.run(fileIo, model);
+            var observer = new SimpleObserver<EngineMessageInfo>(OnEngineMessage);
+            _outputSubscription = _engine.Output.Subscribe(observer);
+            IsAdventureLoaded = true;
         }
-        else
+        catch (Exception ex)
         {
-            var world = result.ResultValue;
-            return InteropWorld.InitializeModel(world, "de", Dummies.Texts.textResources);
+            ErrorMessage = $"Failed to load adventure: {ex.Message}";
+            IsAdventureLoaded = false;
         }
-    }
-
-    [RelayCommand]
-    private void Start()
-    {
-        /*
-        var model =
-            Dummies.World.init(
-                [],
-                Dummies.Rooms.dummyRoomIds.First(),
-                LanguageModule.create("en"),
-                Dummies.Texts.textResources)!;
-                */
-        var model =
-            ParseAdventureFromFolder("/Users/b0wter/Work/ifai/sample_adventure");
-
-        var fileIo = new FileIo();
-
-        // Start the runtime
-        _engine = Runtime.run(fileIo, model);
-
-        // Subscribe to the output Observable
-        var observer = new SimpleObserver<EngineMessageInfo>(OnEngineMessage);
-        _outputSubscription = _engine.Output.Subscribe(observer);
     }
 
     [RelayCommand]
@@ -86,6 +76,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnEngineMessage(EngineMessageInfo messageInfo)
     {
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => OnEngineMessage(messageInfo));
+            return;
+        }
+
         switch (messageInfo)
         {
             case UpdatedGameStateMessage msg:

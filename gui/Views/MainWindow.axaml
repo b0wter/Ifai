@@ -25,7 +25,20 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,*">
+    <Panel>
+    <!-- Picker panel: visible when no adventure is loaded -->
+    <StackPanel IsVisible="{Binding !IsAdventureLoaded}"
+                HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+        <TextBlock Text="Select an adventure folder to begin"
+                   HorizontalAlignment="Center" FontSize="18"/>
+        <Button x:Name="LoadAdventureButton" Content="Load Adventure..."
+                HorizontalAlignment="Center" Click="OnLoadAdventureClick"/>
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="Red"
+                   HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="400"/>
+    </StackPanel>
+
+    <!-- Game UI: visible when adventure is loaded -->
+    <Grid IsVisible="{Binding IsAdventureLoaded}" RowDefinitions="Auto,*">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="Auto"/>
@@ -33,10 +46,10 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        
+
         <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4" Margin="5,5,5,0">
             <MenuItem Header="Exit" Command="{Binding ExitCommand}" />
-            <MenuItem Header="Start" Command="{Binding StartCommand}" />
+            <MenuItem Header="Load Adventure..." Click="OnLoadAdventureClick" />
         </Menu>
         
         <ListBox
@@ -133,4 +146,5 @@
         </Grid>
         
     </Grid>
+    </Panel>
 </Window>
