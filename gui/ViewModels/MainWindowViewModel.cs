@@ -52,7 +52,7 @@ public partial class MainWindowViewModel : ViewModelBase
             var fileIo = new FileIo();
 
             _engine = Runtime.run(fileIo, model);
-            var observer = new SimpleObserver<EngineMessageInfo>(OnEngineMessage);
+            var observer = new SimpleObserver<EngineMessageInfo>(OnEngineMessage, OnEngineError);
             _outputSubscription = _engine.Output.Subscribe(observer);
             IsAdventureLoaded = true;
         }
@@ -111,6 +111,17 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private void OnEngineError(Exception error)
+    {
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => OnEngineError(error));
+            return;
+        }
+
+        ErrorMessage = $"Engine error: {error.Message}";
+    }
+
     private void HandleNewHistoryItem(NewHistoryItemMessage message)
     {
         History.Add(message);
@@ -158,13 +169,15 @@ public partial class MainWindowViewModel : ViewModelBase
 internal class SimpleObserver<T> : IObserver<T>
 {
     private readonly Action<T> _onNext;
+    private readonly Action<Exception>? _onError;
 
-    public SimpleObserver(Action<T> onNext)
+    public SimpleObserver(Action<T> onNext, Action<Exception>? onError = null)
     {
         _onNext = onNext;
+        _onError = onError;
     }
 
     public void OnCompleted() { }
-    public void OnError(Exception error) { }
+    public void OnError(Exception error) => _onError?.Invoke(error);
     public void OnNext(T value) => _onNext(value);
 }
