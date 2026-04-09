@@ -3,11 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
-using Ifai.Gui.Helpers;
 using Ifai.Lib;
-using Ifai.Lib.Content;
 
 #nullable enable
 
@@ -15,6 +11,10 @@ namespace Ifai.Gui.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private readonly Func<string, Model> _loadModel;
+    private readonly Func<Model, Engine> _createEngine;
+    private readonly Action _shutdown;
+
     [ObservableProperty] private string _inputText = string.Empty;
     [ObservableProperty] private string _roomDescription = string.Empty;
     [ObservableProperty] private string _roomName = string.Empty;
@@ -28,6 +28,13 @@ public partial class MainWindowViewModel : ViewModelBase
     private Engine? _engine;
     private IDisposable? _outputSubscription;
 
+    public MainWindowViewModel(Func<string, Model> loadModel, Func<Model, Engine> createEngine, Action shutdown)
+    {
+        _loadModel = loadModel;
+        _createEngine = createEngine;
+        _shutdown = shutdown;
+    }
+
     public void LoadAdventure(string folderPath)
     {
         // Clean up any previously running engine
@@ -39,19 +46,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var result = ContentParser.Content.createWorldFromFolder(folderPath);
-            if (result.IsError)
-            {
-                ErrorMessage = $"Could not parse adventure: {result.ErrorValue}";
-                IsAdventureLoaded = false;
-                return;
-            }
+            var model = _loadModel(folderPath);
 
-            // TODO: this should load actual text resources not the dummies
-            var model = InteropWorld.InitializeModel(result.ResultValue, "de", Dummies.Texts.textResources);
-            var fileIo = new FileIo();
-
-            _engine = Runtime.run(fileIo, model);
+            _engine = _createEngine(model);
             var observer = new SimpleObserver<EngineMessageInfo>(OnEngineMessage, OnEngineError);
             _outputSubscription = _engine.Output.Subscribe(observer);
             IsAdventureLoaded = true;
@@ -155,14 +152,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _outputSubscription?.Dispose();
         _engine?.CancellationTokenSource.Cancel();
-        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            desktop.Shutdown();
-        }
-        else
-        {
-            throw new NotImplementedException("Shutdown is not supported in this application lifetime");
-        }
+        _shutdown();
     }
 }
 
