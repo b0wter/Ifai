@@ -83,7 +83,7 @@ type AdventurePto = {
     Language: string
 }
 
-module IndentationTokens =
+module BlockParser =
     let parseDesc (lines: ContentLine list) =
         let descStartIdx = lines |> List.tryFindIndex (function
             | ContentLine.ComplexLine cl when cl.Key = "desc" -> true

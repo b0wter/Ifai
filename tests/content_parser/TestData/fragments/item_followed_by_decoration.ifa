@@ -1,0 +1,7 @@
+item:
+  id: some_item
+  synonyms: item
+  desc: "An item"
+
+decoration:
+  id: some_decoration

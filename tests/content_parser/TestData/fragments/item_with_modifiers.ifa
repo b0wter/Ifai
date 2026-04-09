@@ -1,0 +1,8 @@
+item:
+  synonyms: torch
+  modifiers:
+    - isLit: false
+    - lifetime: 123
+      type: float
+    - strength: 100
+  desc: A torch.

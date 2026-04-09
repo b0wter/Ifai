@@ -1,0 +1,15 @@
+item:
+  synonyms: torch
+  desc: |
+    An ancient-looking torch
+  interactions:
+    - light:
+        synonyms: light up, burn
+        requires:
+          - items.matches
+        outcomes:
+          - if: !isLit
+            say: "The torch is lit"
+            set: isLit = true
+          - if: isLit
+            say: "The torch is already lit"

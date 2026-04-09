@@ -1,0 +1,9 @@
+room:
+  id: cave
+  name: "Dark Cave"
+  modifiers:
+    - isDark: true
+    - temperature: 10
+      type: int
+  desc: |
+    A very dark cave.

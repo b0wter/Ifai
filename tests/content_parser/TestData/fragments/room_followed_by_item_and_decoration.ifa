@@ -1,0 +1,11 @@
+room:
+  id: first_room
+  name: "First Room"
+  desc: "A room"
+
+item:
+  id: some_item
+  name: "Some Item"
+
+decoration:
+  id: some_decoration

@@ -1,0 +1,25 @@
+decoration:
+  id: wooden_door
+  interactions:
+    - open:
+        outcomes:
+          - if: isLocked
+            say: "The door is locked"
+          - if: !isLocked && !isOpen
+            say: "You open the door"
+            set: isOpen = true
+          - if: isOpen
+            say: "The door is already open"
+    - unlock:
+        requires:
+          - items.iron_key
+        outcomes:
+          - if: this.isLocked
+            target: decorations.underground_lake.door
+            set: this.isLocked = false
+            say: The door has been unlocked.
+          - if: !target.isLocked
+            target: decorations.underground_lake.door
+            say: The door is already unlocked
+        otherwise:
+          say: You cannot unlock the door without the key

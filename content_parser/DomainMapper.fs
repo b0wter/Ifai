@@ -5,7 +5,7 @@ open System.Linq
 open Ifai.Lib
 
 
-module IndentationMapper =
+module DomainMapper =
     open Ifai.Lib
     open Ifai.Lib.Content
     open Ifai.Lib.Shared
@@ -197,19 +197,19 @@ module IndentationMapper =
             match remaining with
             | [] -> acc
             | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u && cl.Key = "room" ->
-                let roomPto, rest = IndentationTokens.toRoomPto remaining
+                let roomPto, rest = BlockParser.toRoomPto remaining
                 let roomWithMods = mapRoom roomPto
                 loop rest { acc with Rooms = roomWithMods :: acc.Rooms } (Some roomPto.Id)
             | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u && (cl.Key = "item" || cl.Key = "decoration") ->
                 match currentRoomId with
                 | Some rid ->
-                    let thingPto, rest = IndentationTokens.toThingPto remaining
+                    let thingPto, rest = BlockParser.toThingPto remaining
                     let thing, mods = mapThing rid thingPto
                     let location = ThingLocation.Room (RoomId.create rid)
                     loop rest { acc with Things = (thing, mods, location) :: acc.Things } (Some rid)
                 | None -> failwith "Found item/decoration before any room definition"
             | ContentLine.ComplexLine cl :: _ when cl.Indentation = 0u && (cl.Key = "adventure") ->
-                let adventurePto, rest = IndentationTokens.toAdventurePto remaining
+                let adventurePto, rest = BlockParser.toAdventurePto remaining
                 let adventure = mapAdventure adventurePto
                 loop rest { acc with Adventure = Some adventure } currentRoomId
                 

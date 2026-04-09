@@ -1,0 +1,8 @@
+decoration:
+  id: wooden_door
+  traits:
+    - door:
+        isLocked: true
+        isOpen: false
+        key: items.iron_key, items.master_key
+  desc: A wooden door.

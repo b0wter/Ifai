@@ -2,7 +2,7 @@ module ValidationTests
 
 open FsUnit.CustomMatchers
 open Ifai.ContentParser.Validation
-open Ifai.ContentParser.IndentationMapper
+open Ifai.ContentParser.DomainMapper
 open Ifai.Lib
 open Ifai.Lib.Content
 open Ifai.Lib.Content.Thing

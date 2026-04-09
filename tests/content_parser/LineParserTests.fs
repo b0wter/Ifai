@@ -1,7 +1,5 @@
-module IndentationParserTests
+module LineParserTests
 
-open System
-open System.IO
 open Ifai.ContentParser
 open Xunit
 open FsUnit.Xunit
@@ -9,38 +7,36 @@ open FsUnit.Xunit
 [<Fact>]
 let ``Parse simple item line`` () =
     let line = "item:"
-    let result = IndentationParser.parseLine line
+    let result = LineParser.parseLine line
     result |> should equal (Some (ContentLine.ComplexLine { Indentation = 0u; Key = "item"; Value = None; StartsWithDash = false }))
 
 [<Fact>]
 let ``Parse line with leading dash and spaces`` () =
     let line = "    - throw, toss:"
-    let result = IndentationParser.parseLine line
+    let result = LineParser.parseLine line
     result |> should equal (Some (ContentLine.ComplexLine { Indentation = 4u; Key = "throw, toss"; Value = None; StartsWithDash = true }))
 
 [<Fact>]
 let ``Parse line with dash and key value`` () =
     let line = "        - target: decorations.underground_lake.lake"
-    let result = IndentationParser.parseLine line
+    let result = LineParser.parseLine line
     result |> should equal (Some (ContentLine.ComplexLine { Indentation = 8u; Key = "target"; Value = Some "decorations.underground_lake.lake"; StartsWithDash = true }))
 
 [<Fact>]
 let ``Parse line with comment`` () =
     let line = "          destroy: this # will completely remove the pebble from the game"
-    let result = IndentationParser.parseLine line
+    let result = LineParser.parseLine line
     result |> should equal (Some (ContentLine.ComplexLine { Indentation = 10u; Key = "destroy"; Value = Some "this"; StartsWithDash = false }))
 
 [<Fact>]
 let ``Parse string line`` () =
     let line = "    just some text"
-    let result = IndentationParser.parseLine line
+    let result = LineParser.parseLine line
     result |> should equal (Some (ContentLine.StringLine "    just some text"))
 
 [<Fact>]
 let ``Parse whole in_front_of_house.ifa file`` () =
-    let path = Path.Combine("TestData", "in_front_of_house.ifa")
-    let content = File.ReadAllText(path)
-    let results = IndentationParser.parse content
+    let results = TestHelper.readTestData "in_front_of_house.ifa" |> LineParser.parse
     
     // Helper to find a ContentLine by Key
     let findLine key = 

@@ -1,7 +1,7 @@
 module Ifai.ContentParser.Validation
 
 open System
-open Ifai.ContentParser.IndentationMapper
+open Ifai.ContentParser.DomainMapper
 open Ifai.Lib
 open Ifai.Lib.Content
 open Ifai.Lib.Shared
@@ -11,7 +11,13 @@ open FsToolkit.ErrorHandling
 let parametersRegex = @"\{(?:[^:{}]+:)?[^{}]+\}"
 
 
-let validateRoom (room: Room, modifiers: RoomModifier list) : Result<unit, string list> =
+let validateRoom (_: Room, modifiers: RoomModifier list) : Result<unit, string list> =
+    // reaching this point is validation of its own:
+    //  - id cannot be empty since it's not an option
+    //  - name cannot be empty since it's not an option
+    //  - description cannot be empty since it's not an option
+    //  - environment cannot be empty since it's not an option
+    modifiers |>
     Ok ()
 
 

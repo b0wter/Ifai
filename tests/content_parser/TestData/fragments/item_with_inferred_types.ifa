@@ -1,0 +1,8 @@
+item:
+  synonyms: item
+  modifiers:
+    - someInt: 42
+    - someFloat: 3.14
+    - someString: "hello"
+    - someBool: true
+  desc: item

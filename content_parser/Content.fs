@@ -3,13 +3,13 @@ module Ifai.ContentParser.Content
 open FsToolkit.ErrorHandling
 open Ifai.Lib
 open Ifai.Lib.Content
-open Ifai.ContentParser.IndentationMapper
+open Ifai.ContentParser.DomainMapper
 
 let parseFile (file: string) : Result<MappedContent, string> =
     if System.IO.File.Exists file then
         try
             Ok (System.IO.File.ReadAllText file)
-            |> Result.map IndentationParser.parse
+            |> Result.map LineParser.parse
             |> Result.map mapFullContent
         with e -> Error $"Error parsing '{file}': {e.Message}"
     else Error $"File not found: {file}"

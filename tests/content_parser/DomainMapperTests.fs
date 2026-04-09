@@ -1,6 +1,5 @@
-namespace IndentationMapperTests
+namespace DomainMapperTests
 
-open System.IO
 open Ifai.ContentParser
 open Ifai.Lib
 open Ifai.Lib.Content
@@ -8,15 +7,13 @@ open Ifai.Lib.Shared
 open Xunit
 open FsUnit.Xunit
 
-module IndentationMapperTests =
+module DomainMapperTests =
 
     [<Fact>]
     let ``Map entire in_front_of_house.ifa file`` () =
-        let path = Path.Combine("TestData", "in_front_of_house.ifa")
-        let content = File.ReadAllText(path)
-        let lines = IndentationParser.parse content
+        let lines = TestHelper.readTestData "in_front_of_house.ifa" |> LineParser.parse
         
-        let mapped = IndentationMapper.mapFullContent lines
+        let mapped = DomainMapper.mapFullContent lines
         
         // 1. Check Rooms
         mapped.Rooms.Length |> should equal 1
@@ -70,19 +67,8 @@ module IndentationMapperTests =
 
     [<Fact>]
     let ``Map room with modifiers to RoomModifiers`` () =
-        let content = """
-room:
-  id: cave
-  name: "Dark Cave"
-  modifiers:
-    - isDark: true
-    - temperature: 10
-      type: int
-  desc: |
-    A very dark cave.
-"""
-        let lines = IndentationParser.parse content
-        let mapped = IndentationMapper.mapFullContent lines
+        let lines = TestHelper.readFragment "room_with_modifiers.ifa" |> LineParser.parse
+        let mapped = DomainMapper.mapFullContent lines
         
         mapped.Rooms.Length |> should equal 1
         let _, mods = mapped.Rooms[0]

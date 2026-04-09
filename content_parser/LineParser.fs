@@ -15,7 +15,7 @@ type ContentLine =
     | StringLine of string
 
 
-module IndentationParser =
+module LineParser =
     let parseLine (line: string) : ContentLine option =
         if String.IsNullOrWhiteSpace line then
             None

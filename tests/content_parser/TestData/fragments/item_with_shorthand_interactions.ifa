@@ -1,0 +1,12 @@
+item:
+  synonyms: pebble
+  desc: A pebble.
+  interactions:
+    - read:
+        say: "The sign says: something"
+    - kick, punch, strike:
+        - if: !isDown
+          say: "You kick the sign"
+          set: isDown = true
+        - if: isDown
+          say: "The sign is already down"

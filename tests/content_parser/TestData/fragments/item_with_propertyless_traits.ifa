@@ -1,0 +1,6 @@
+item:
+  synonyms: rock
+  traits:
+    - heavy
+    - throwable
+  desc: A rock.

@@ -1,0 +1,14 @@
+room:
+  id: underground_lake
+  name: "Cave entrance"
+  exits:
+    - north: rooms.cave_tunnel
+    - south: rooms.storage_room
+      via: decorations.underground_lake.door
+    - behind rock, under rock, behind boulder, under boulder: rooms.secret_room
+      via: decorations.underground_lake.giant_rock
+
+  desc: |
+    You stand at the entrance to a cave. The entrance is dimly lit, small plants and brush cover the rock.
+    {item:sign}
+    There is only one way forward. You feel like not being able to go back.

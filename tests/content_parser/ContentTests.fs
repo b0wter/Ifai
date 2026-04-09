@@ -12,9 +12,9 @@ module ContentTests =
     let testRoomId = RoomId.create "in_front_of_house"
     let testLanguage = Language.create "en"
     let dummyAdventureContent =
-        { Ifai.ContentParser.IndentationMapper.MappedContent.Rooms = []
-          Ifai.ContentParser.IndentationMapper.MappedContent.Things = []
-          Ifai.ContentParser.IndentationMapper.MappedContent.Adventure =
+        { Ifai.ContentParser.DomainMapper.MappedContent.Rooms = []
+          Ifai.ContentParser.DomainMapper.MappedContent.Things = []
+          Ifai.ContentParser.DomainMapper.MappedContent.Adventure =
             Some { Language = testLanguage; Name = "Test Adventure"; InitialRoom = testRoomId } }
 
     [<Fact>]

@@ -1,0 +1,5 @@
+decoration:
+  id: lake
+  synonyms: lake, water
+  desc: |
+    A calm lake.
