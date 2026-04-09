@@ -49,10 +49,19 @@ type BurningModifier =
 /// Does not contain a case for not being flooded, as this is the default state.
 /// </remarks>
 type FloodingModifier =
-    | Rising of rate:uint
-    | Lowering of rate:uint
     | PartlyFlooded of percent:uint
     | Flooded
+
+
+/// <summary>
+/// Describes the change of the current flooding state.
+/// </summary>
+/// <remarks>
+/// Does not contain a case for not being flooded, as this is the default state.
+/// </remarks>
+type FloodingDeltaModifier =
+    | Rising of rate:uint
+    | Lowering of rate:uint
 
 
 type PressureState =
