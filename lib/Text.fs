@@ -20,6 +20,8 @@ module ParameterKey =
     let value (ParameterKey k) = k
 
 
+type RawTextResources = Map<string, Map<string, string>>
+
 type TextResources = Map<Language,Map<TextKey,string>>
 
 
@@ -246,7 +248,7 @@ module Text =
             Error { Text = $"%s{parameterizedString}%s{mergedMissing}%s{mergedMismatches}"; NarrativeStyle = System }
 
     
-    let private toDomainResources (raw: Map<string, Map<string, string>>) : TextResources =
+    let toDomainResources (raw: RawTextResources) : TextResources =
         raw 
         |> Map.toList
         |> List.map (fun (lang, keys) -> 
@@ -259,20 +261,4 @@ module Text =
         |> Map.ofList
 
 
-    let loadResourceFromFile (filename: string) : Result<TextResources, string> =
-        if not (filename |> System.IO.File.Exists) then (Error $"The given resource file '%s{filename}' does not exist")
-        else
-            let readFileAction filename =
-                try Ok (filename |> System.IO.File.ReadAllText)
-                with exn -> Error $"Could not read file '%s{filename}' because: %s{exn.Message}"
-
-            let parseContentAction (content: string) =
-                    try
-                        let deserialized = content |> System.Text.Json.JsonSerializer.Deserialize<Map<string, Map<string, string>>>
-                        Ok (deserialized |> toDomainResources)
-                    with exn -> Error $"Could not parse content of file '%s{filename}' because: %s{exn.Message}"
-                
-            filename
-            |> readFileAction
-            |> Result.bind parseContentAction
             
