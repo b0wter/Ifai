@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:Avalonia.Controls.Converters;assembly=Avalonia.Controls"
-        xmlns:lib="clr-namespace:Ifai.Lib;assembly=Ifai.Lib"
+        xmlns:interop="clr-namespace:Ifai.Runtime.Interop.Types;assembly=Ifai.Runtime"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Ifai.Gui.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -96,23 +96,23 @@
                             Classes.regular="{Binding 
                             Style,
                                 Converter={StaticResource EnumToBoolConverter},
-                                ConverterParameter={x:Static lib:NarrativeStyleInfo.Regular}}"
+                                ConverterParameter={x:Static interop:NarrativeStyleInfo.Regular}}"
                             Classes.emphasized="{Binding 
                             Style,
                                 Converter={StaticResource EnumToBoolConverter},
-                                ConverterParameter={x:Static lib:NarrativeStyleInfo.Emphasized}}"
+                                ConverterParameter={x:Static interop:NarrativeStyleInfo.Emphasized}}"
                             Classes.hint="{Binding 
                             Style,
                                 Converter={StaticResource EnumToBoolConverter},
-                                ConverterParameter={x:Static lib:NarrativeStyleInfo.Hint}}"
+                                ConverterParameter={x:Static interop:NarrativeStyleInfo.Hint}}"
                             Classes.dialogue="{Binding 
                             Style,
                                 Converter={StaticResource EnumToBoolConverter},
-                                ConverterParameter={x:Static lib:NarrativeStyleInfo.Dialogue}}"
+                                ConverterParameter={x:Static interop:NarrativeStyleInfo.Dialogue}}"
                             Classes.system="{Binding 
                             Style,
                                 Converter={StaticResource EnumToBoolConverter},
-                                ConverterParameter={x:Static lib:NarrativeStyleInfo.System}}"
+                                ConverterParameter={x:Static interop:NarrativeStyleInfo.System}}"
                             TextWrapping="Wrap">
                             <TextBlock.Styles>
                                 <Style Selector="TextBlock.emphasized">

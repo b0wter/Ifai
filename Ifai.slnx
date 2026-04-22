@@ -19,5 +19,6 @@
   <Project Path="content_parser\Ifai.ContentParser.fsproj" />
   <Project Path="dummies/Ifai.Dummies.fsproj" />
   <Project Path="gui/Ifai.Gui.csproj" />
+  <Project Path="runtime/Ifai.Runtime.fsproj" />
   <Project Path="lib/Ifai.Lib.fsproj" />
 </Solution>

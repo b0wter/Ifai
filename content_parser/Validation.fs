@@ -17,7 +17,7 @@ let validateRoom (_: Room, modifiers: RoomModifier list) : Result<unit, string l
     //  - name cannot be empty since it's not an option
     //  - description cannot be empty since it's not an option
     //  - environment cannot be empty since it's not an option
-    modifiers |>
+    modifiers |> ignore
     Ok ()
 
 

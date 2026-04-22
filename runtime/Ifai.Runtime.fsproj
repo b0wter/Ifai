@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="RuntimeTypes.fs" />
+    <Compile Include="RuntimeMappers.fs" />
+    <Compile Include="Engine.fs" />
+    <Compile Include="InteropTypes.fs" />
+    <Compile Include="InteropMappers.fs" />
+    <Compile Include="InteropEngine.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\lib\Ifai.Lib.fsproj" />
+  </ItemGroup>
+
+</Project>

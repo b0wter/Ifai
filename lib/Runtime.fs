@@ -1,7 +1,5 @@
 module Ifai.Lib.Runtime
 
-open System
-open System.Threading
 open Ifai.Lib.Modes
 open Ifai.Lib.Content
 
@@ -43,13 +41,13 @@ let update (model: Model) (event: Event) : GlobalResult =
         | Some (BuiltIns.GlobalBuiltIn.Save filename) ->
             GlobalResult.init model
             |> GlobalResult.withTransition (ModeTransition.StartSaving { Filename = filename })
-        | Some (BuiltIns.GlobalBuiltIn.Load filename) -> 
+        | Some (BuiltIns.GlobalBuiltIn.Load filename) ->
             GlobalResult.init model
             |> GlobalResult.withTransition (ModeTransition.StartLoading { Filename = filename })
         | Some BuiltIns.GlobalBuiltIn.Quit ->
             GlobalResult.init model
             |> GlobalResult.withRuntime RuntimeAction.Quit
- 
+
         // Other input is delegated to the current game mode
         | None ->
             let parser =
@@ -70,7 +68,7 @@ let update (model: Model) (event: Event) : GlobalResult =
     | InExploring _, _ ->
         // Fail fast while we're still developing!
         failwith $"Invalid combination, received {event} while in Exploring mode"
-        
+
     | InSaving state, Event.FileWrittenSuccessfully ->
         Saving.update (StepInput.init w state Saving.SavingEvent.IoSuccess)
         |> mapStepResultToGlobalResult GameMode.Saving Event.Saving model
@@ -91,7 +89,7 @@ let update (model: Model) (event: Event) : GlobalResult =
         |> mapStepResultToGlobalResult GameMode.Transitioning Event.Transitioning model
     | InTransitioning _, _ ->
         failwith $"Invalid combination, received {event} while in Transitioning mode"
-        
+
     | otherMode, msg -> failwith $"Combination of {otherMode} and {msg} not yet implemented"
 
 
@@ -113,85 +111,6 @@ let runParser (preConfiguredParser: Parsing) : Event =
         |> Transitioning.parser language
         |> Transitioning.TransitioningEvent.UserInput
         |> Event.Transitioning
-
-
-let runAction
-        (fileIo: IFileIO)
-        (terminate: unit -> unit)
-        (action: RuntimeAction<Event>) : Event option =
-    match action with
-    | Quit ->
-        do terminate ()
-        None
-    | RuntimeAction.Nothing -> None
-    | Parsing p -> p |> runParser |> Some
-    | WriteFile (filename, allowOverwrite, content) ->
-        content
-        |> (fileIo.WriteFile filename allowOverwrite) 
-        |> (function
-            | WriteFileResult.Success -> Event.FileWrittenSuccessfully
-            | WriteFileResult.Failure error -> Event.FileWriteFailed error
-            | WriteFileResult.AlreadyExists filename -> Event.FileAlreadyExists filename)
-        |> Some
-    | ReadFile _ -> failwith "todo: not yet implemented"
-    | SerializeAndWriteToFile (filename, allowOverwrite, obj) ->
-        obj
-        |> fileIo.Serialize
-        |> Result.map (fileIo.WriteFile filename allowOverwrite)
-        |> (function
-            | Ok WriteFileResult.Success -> Event.FileWrittenSuccessfully
-            | Ok (WriteFileResult.Failure err) -> err |> Event.FileWriteFailed
-            | Ok (WriteFileResult.AlreadyExists f) -> f |> Event.FileAlreadyExists
-            | Error err -> err |> Event.FileWriteFailed)
-        |> Some
-    | OfEvent e -> Some e
-    // The SaveGame case is special since it requires a current instance of the model. That model is only known to the
-    // runtime and that's why the `SaveGame` action is replaced with a `SerializeAndWriteToFile` action with the world
-    // as parameter
-    | SaveGame _ -> failwith "SaveGame must be resolved by the runtime and cannot be run as an action"
-    
-    
-let rec render (resources: TextResources) (language: Language) (action: RenderAction) : EngineMessage option =
-    // TODO: since there is no scripting or DSL for the game logic there is no sense in having parameterized texts
-    let clear = EngineMessage.ClearScreen
-
-    let mapStyle (a: NarrativeStyle) : NarrativeStyleInfo =
-        match a with
-        | Regular -> NarrativeStyleInfo.Regular
-        | Emphasized -> NarrativeStyleInfo.Emphasized
-        | Hint -> NarrativeStyleInfo.Hint
-        | Dialogue -> NarrativeStyleInfo.Dialogue
-        | System -> NarrativeStyleInfo.System
-
-    let render (text: Text.DisplayableText) =
-            EngineMessage.NewHistoryItem (text.Text, text.NarrativeStyle |> mapStyle)
-
-    let localizedTextFormatter (text: Text.LocalizedText) =
-        text
-        |> Text.mergeParameters None
-        |> function Ok t -> t | Error t -> t
-        
-    let textFormatter (text: Text) =
-        text
-        |> Text.localize resources language
-        |> Text.mergeParameters None
-        |> function Ok t -> t | Error t -> t
-
-    let rec asFunction (renderable: RenderAction) : EngineMessage list =
-        match renderable with
-        | RenderAction.Nothing -> []
-        | RenderAction.Clear -> [clear]
-        | RenderAction.Text text -> [text |> textFormatter |> render]
-        | RenderAction.LocalizedText text -> [text |> localizedTextFormatter |> render]
-        | RenderAction.Fallback s -> 
-            let asDisplayable = { Text.DisplayableText.Text = s; Text.DisplayableText.NarrativeStyle = NarrativeStyle.Regular }
-            [ asDisplayable |> render ]
-        | RenderAction.Batch batch -> batch |> List.collect asFunction
-
-    match action |> asFunction with
-    | [] -> None
-    | [single] -> Some single
-    | many -> many |> Array.ofList |> EngineMessage.Batch |> Some
 
 
 /// <summary>
@@ -229,128 +148,3 @@ let runTransition (transition: ModeTransition) (model: Model) : Model * RuntimeA
         { model with GameMode = (result.State |> GameMode.Transitioning) :: model.GameMode },
         result.Runtime |> RuntimeAction.map Event.Transitioning,
         result.Render
-
-
-let constructGameStateInfo (model: Model) : GameStateInfo =
-    let asDisplayableL (t: Text.LocalizedText) =
-        match t |> Text.mergeParameters None with
-        | Ok d -> d
-        | Error e -> e
-    
-    let asDisplayable t =
-        match Text.localize model.TextResources model.Language t |> Text.mergeParameters None with
-        | Ok d -> d
-        | Error e -> e
-        
-    let constructConnectionInfo (c: Connection<RoomId>) : ConnectionInfo =
-        let name = c.Exit |> Exit.asText |> asDisplayable
-        let visibility = c.Visibility |> VisibilityInfo.fromVisibility
-        { ConnectionInfo.Visibility = visibility
-          ConnectionInfo.Description = c.Description |> Option.map asDisplayable
-          ConnectionInfo.Name = name }
-
-    let constructRoomInfo (room: Room) : RoomInfo =
-        { RoomInfo.Name = room.Name |> asDisplayableL
-          RoomInfo.Description = room.Description |> asDisplayableL
-          RoomInfo.Exits = Array.empty
-          RoomInfo.Things = Array.empty
-          RoomInfo.Characters = Array.empty }
-
-    let room = model.World |> World.currentRoom |> constructRoomInfo
-    let player = { PlayerInfo.Inventory = Array.empty }
-    { GameStateInfo.Player = player; GameStateInfo.Room = room }
-    
-
-let run (fileIo: IFileIO) (model: Model) : Engine =
-    let cts = new CancellationTokenSource()
-    let terminate = fun () -> cts.Cancel()
-    let runAction = runAction fileIo terminate
-    let engineMessageEvent = Event<EngineMessageInfo>()
-    let sendEngineMessage (message: EngineMessage) = message |> EngineMessageInfo.FromEngineMessage |> engineMessageEvent.Trigger
-
-    let agent = MailboxProcessor<Event>.Start(fun inbox ->
-        let rec loop (currentModel: Model) (pendingTransition: ModeTransition option) = async {
-            try
-                (*
-                    To transition between states and not lose any messages, the transition works as follows:
-                    - we store the pending transition in a mutable variable.
-                    - we "drain" the current mailbox, this should be no problem since messages are almost exclusively
-                      created through user input
-                    - once the mailbox is empty and we cannot dequeue any event, we apply the transition
-                *)
-                let! maybeEvent = inbox.TryReceive(100)
-                match maybeEvent with
-                | Some event ->
-                    let result = update currentModel event
-                    
-                    sendEngineMessage (EngineMessage.UpdatedGameState (constructGameStateInfo result.Model))
-                    
-                    do sendEngineMessage (EngineMessage.DebugOutputResult (result, event))
-                    
-                    match result.Render |> render result.Model.TextResources result.Model.Language with
-                    | Some renderable -> renderable |> sendEngineMessage
-                    | _ -> ()
-
-                    do
-                       // Since the SaveGame action requires the current `model` it can only be truly constructed in
-                       // the runtime. 
-                       (match result.Runtime with
-                        | SaveGame (filename, allowOverwrite) -> SerializeAndWriteToFile (filename, allowOverwrite, result.Model)
-                        | other -> other)
-                        |> runAction
-                        |> Option.iter inbox.Post
-                    
-                    if cts.Token.IsCancellationRequested then
-                        do printfn "Shutting down"
-                        return ()
-                    else
-                        match result.Transition, pendingTransition with
-                        | ModeTransition.Nothing, None ->
-                            return! loop result.Model None
-                        | otherTransition, None ->
-                            return! loop result.Model (Some otherTransition)
-                        | otherTransition, Some pending ->
-                            do
-                                (EngineMessage.DebugOutputMessage $"Received transition to %A{otherTransition} while having pending transition to %A{pending}, ignoring new transition and keep pending transition")
-                                |> sendEngineMessage
-                            return! loop result.Model pendingTransition
-                | None ->
-                    match pendingTransition with
-                    | Some t ->
-                        let newModel, runtimeAction, renderAction = currentModel |> runTransition t
-                        
-                        do (match runtimeAction with
-                            | SaveGame (filename, allowOverwrite) -> SerializeAndWriteToFile (filename, allowOverwrite, newModel)
-                            | other -> other)
-                            |> runAction
-                            |> Option.iter inbox.Post
-                        
-                        match renderAction |> render newModel.TextResources model.Language with
-                        | Some renderable -> renderable |> sendEngineMessage
-                        | None -> ()
-
-                        return! loop newModel None
-                    | None ->
-                        return! loop currentModel None
-            with
-            | exn ->
-                do (EngineMessage.DebugOutputMessage $"Error while running command: %s{exn.Message}%s{Environment.NewLine}%s{exn.StackTrace}") |> sendEngineMessage
-                do cts.Cancel ()
-                return ()
-        }
-        loop model None
-    )
-    
-    let inputPort =
-        { new IEngineInput with
-            member _.Send command =
-                if not cts.IsCancellationRequested then
-                    match command with
-                    | EngineCommand.UserInput input -> input |> Event.RawInput |> agent.Post }
-    
-    
-    {
-        Input = inputPort
-        Output = engineMessageEvent.Publish
-        CancellationTokenSource = cts
-    }

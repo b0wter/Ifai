@@ -4,6 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Ifai.Lib;
+using Ifai.Runtime.Interop;
+using Ifai.Runtime.Interop.Types;
+using Engine = Ifai.Runtime.Interop.Types.Engine;
 
 #nullable enable
 
@@ -65,7 +68,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_engine != null && !string.IsNullOrWhiteSpace(InputText))
         {
-            var command = EngineCommand.NewUserInput(InputText);
+            var command = Ifai.Runtime.EngineCommand.NewUserInput(InputText);
             _engine.Input.Send(command);
             InputText = string.Empty;
         }

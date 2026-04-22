@@ -10,6 +10,7 @@ using Ifai.Gui.ViewModels;
 using Ifai.Gui.Views;
 using Ifai.Lib;
 using Ifai.Lib.Content;
+using Ifai.Runtime.Interop;
 
 namespace Ifai.Gui;
 
@@ -26,7 +27,7 @@ public partial class App : Application
         if (result.IsError)
             throw new ArgumentException($"Could not parse adventure: {result.ErrorValue}");
         // TODO: this should load actual text resources not the dummies
-        return InteropWorld.InitializeModel(result.ResultValue, "de", Dummies.Texts.textResources);
+        return Ifai.Runtime.Interop.Engine.initializeModel(result.ResultValue, "de", Dummies.Texts.textResources);
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -38,7 +39,7 @@ public partial class App : Application
 
             var fileIo = new FileIo();
 
-            Engine CreateEngine(Model model) => Runtime.run(fileIo, model);
+            Runtime.Interop.Types.Engine CreateEngine(Model model) => Engine.run(fileIo, model);
 
             var viewModel = new MainWindowViewModel(LoadModel, CreateEngine, () => desktop.Shutdown());
 

@@ -102,9 +102,10 @@ module RoomModifier =
         | Underpressurized percent, Underpressurized percent1 -> failwith "todo"
 
     let merge (modifiers: RoomModifier list) : RoomModifier list =
-        let grouped =
+        let _grouped =
             modifiers
             |> List.groupBy modifierAsString
+        failwith "todo: merge not yet implemented"
 
 
 /// <summary>

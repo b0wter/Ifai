@@ -3,6 +3,7 @@ open System.Text.Json.Serialization
 
 open Ifai.Lib
 open Ifai.Lib.Modes
+open Ifai.Runtime
 
 let printDebug (result: GlobalResult) (event: Event) =
     do Console.ForegroundColor <- ConsoleColor.Yellow
@@ -28,14 +29,41 @@ let createDebugOutput () =
             Console.WriteLine(message)}
 
 
-let textWriter filename allowOverwrite (content: string) =
+let textWriter (filename: string) allowOverwrite (content: string) =
+    let fullPath = System.IO.Path.GetFullPath(filename)
+
+    let dir =
+        let d = System.IO.Path.GetDirectoryName(fullPath)
+        if System.String.IsNullOrEmpty(d) then
+            System.IO.Directory.GetCurrentDirectory()
+        else d
+
+    let tempFile = System.IO.Path.Combine(dir, $".tmp_{System.IO.Path.GetRandomFileName()}")
+    let backupFile = fullPath + ".bak"
+
     try
-        if (filename |> IO.File.Exists) && (not allowOverwrite) then filename |> WriteFileResult.AlreadyExists
+        // Optional early exit
+        if not allowOverwrite && System.IO.File.Exists(fullPath) then
+            WriteFileResult.AlreadyExists fullPath
         else
-            do IO.File.WriteAllText(filename, content)
+            System.IO.Directory.CreateDirectory(dir) |> ignore
+
+            use fs = new System.IO.FileStream(tempFile, System.IO.FileMode.CreateNew, System.IO.FileAccess.Write, System.IO.FileShare.None)
+            use writer = new System.IO.StreamWriter(fs, new System.Text.UTF8Encoding(false))
+            writer.Write(content)
+            writer.Flush()
+            fs.Flush(true)
+
+            if System.IO.File.Exists(fullPath) then
+                System.IO.File.Replace(tempFile, fullPath, backupFile, true)
+            else
+                System.IO.File.Move(tempFile, fullPath)
+
             WriteFileResult.Success
-    with
-    | exn -> WriteFileResult.Failure exn.Message
+
+    with ex ->
+        try if System.IO.File.Exists(tempFile) then System.IO.File.Delete(tempFile) with _ -> ()
+        WriteFileResult.Failure ex.Message
 
 
 let options =
@@ -64,7 +92,7 @@ let createRenderer () =
          | Emphasized -> Console.ForegroundColor <- ConsoleColor.DarkYellow
          | Hint -> Console.ForegroundColor <- ConsoleColor.Gray
          | Dialogue -> Console.ForegroundColor <- ConsoleColor.DarkGreen
-         | System -> Console.ForegroundColor <- ConsoleColor.DarkRed
+         | NarrativeStyle.System -> Console.ForegroundColor <- ConsoleColor.DarkRed
          Console.WriteLine(text)
 
      { new IRenderer with
@@ -78,21 +106,21 @@ let createInput () =
 
 let model = Ifai.Dummies.World.init [] Ifai.Dummies.Rooms.dummyRoomIds[0] (Language.create "en") Ifai.Dummies.Texts.textResources
 
-let engine = Runtime.run (createFileIo()) model
+let engine = Engine.run (createFileIo()) model
 
 let rec handleEngineMessage (message: EngineMessage) =
     do Console.ResetColor()
     match message with
-    | UpdatedGameState gameStateInfo -> printfn "%A" gameStateInfo
-    | NewHistoryItem(s, _) -> printfn "%s" s
-    | ClearScreen -> Console.Clear()
-    | DebugOutputResult(globalResult, event) -> Console.ForegroundColor <- ConsoleColor.DarkGray; printDebug globalResult event
-    | DebugOutputMessage s -> printfn "%s" s
-    | RequestQuit -> engine.CancellationTokenSource.Cancel()
+    | EngineMessage.UpdatedGameState gameSnapshot -> printfn "%A" gameSnapshot
+    | EngineMessage.NewHistoryItem(s, _) -> printfn "%s" s
+    | EngineMessage.ClearScreen -> Console.Clear()
+    | EngineMessage.DebugOutputResult(globalResult, event) -> Console.ForegroundColor <- ConsoleColor.DarkGray; printDebug globalResult event
+    | EngineMessage.DebugOutputMessage s -> printfn "%s" s
+    | EngineMessage.RequestQuit -> engine.CancellationTokenSource.Cancel()
     | EngineMessage.Batch engineMessages -> Array.iter handleEngineMessage engineMessages
 
 do engine.Output.Subscribe(fun x ->
-    handleEngineMessage x.OriginalMessage
+    handleEngineMessage x
     ) |> ignore
 
 let externalInput = createInput()

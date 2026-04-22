@@ -21,6 +21,11 @@ type ReadFileResult =
     | DoesNotExist of filename:string
 
 
+type IFileIO =
+    abstract member WriteFile : filename:string -> allowOverwrite:bool -> content:string -> WriteFileResult
+    abstract member Serialize: obj:obj -> Result<string, string>
+
+
 type RuntimeAction<'event> =
     | Nothing
     | Parsing of Parsing
