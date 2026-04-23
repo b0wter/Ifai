@@ -32,7 +32,7 @@
     <Compile Include="Modes\Loading.fs" />
     <Compile Include="Modes\Transitioning.fs" />
     <Compile Include="Model.fs" />
-    <Compile Include="Runtime.fs" />
+    <Compile Include="GameLoop.fs" />
   </ItemGroup>
 
   <ItemGroup>

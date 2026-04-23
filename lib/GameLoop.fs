@@ -1,7 +1,6 @@
-module Ifai.Lib.Runtime
+module Ifai.Lib.GameLoop
 
 open Ifai.Lib.Modes
-open Ifai.Lib.Content
 
 
 let (|InExploring|_|) = function

@@ -16,7 +16,7 @@ let runAction
         do terminate ()
         None
     | RuntimeAction.Nothing -> None
-    | Parsing p -> p |> Runtime.runParser |> Some
+    | Parsing p -> p |> GameLoop.runParser |> Some
     | WriteFile (filename, allowOverwrite, content) ->
         content
         |> (fileIo.WriteFile filename allowOverwrite)
@@ -63,7 +63,7 @@ let run (fileIo: IFileIO) (model: Model) : RuntimeEngine =
                 let! maybeEvent = inbox.TryReceive(100)
                 match maybeEvent with
                 | Some event ->
-                    let result = Runtime.update currentModel event
+                    let result = GameLoop.update currentModel event
 
                     sendEngineMessage (EngineMessage.UpdatedGameState (RuntimeMappers.constructGameSnapshot result.Model))
 
@@ -99,7 +99,7 @@ let run (fileIo: IFileIO) (model: Model) : RuntimeEngine =
                 | None ->
                     match pendingTransition with
                     | Some t ->
-                        let newModel, runtimeAction, renderAction = currentModel |> Runtime.runTransition t
+                        let newModel, runtimeAction, renderAction = currentModel |> GameLoop.runTransition t
 
                         do (match runtimeAction with
                             | SaveGame (filename, allowOverwrite) -> SerializeAndWriteToFile (filename, allowOverwrite, newModel)
